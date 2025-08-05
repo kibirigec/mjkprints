@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run lint)",
+      "Bash(rm:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:www.etsy.com)",
+      "Bash(sed:*)",
+      "Bash(grep:*)",
+      "Bash(npm run lint:*)",
+      "Bash(supabase:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(mv:*)",
+      "Bash(cp /Users/Calvin/Desktop/mjkprints/supabase-setup.sql /Users/Calvin/Desktop/mjkprints/supabase-setup.sql.backup)",
+      "Bash(ls -la /Users/Calvin/Desktop/mjkprints/)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(NODE_ENV=development node test-pdf-issue.js)",
+      "Bash(cp:*)",
+      "Bash(brew list:*)",
+      "Bash(brew install:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:stackoverflow.com)",
+      "Bash(npm uninstall:*)",
+      "Bash(cat:*)",
+      "Bash(env)"
+    ],
+    "deny": []
+  }
+}
