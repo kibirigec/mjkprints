@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS file_uploads (
     product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     file_name TEXT NOT NULL,
     file_size BIGINT NOT NULL,
+    file_type TEXT NOT NULL CHECK (file_type IN ('pdf', 'image')), -- pdf or image
     storage_path TEXT NOT NULL,
     is_primary BOOLEAN DEFAULT false,
     -- PDF-specific fields
@@ -36,19 +37,22 @@ CREATE TABLE IF NOT EXISTS file_uploads (
     dimensions JSONB, -- {width, height, unit, dpi?}
     preview_urls JSONB, -- Array of preview image URLs (for PDFs) or resized versions (for images)
     thumbnail_urls JSONB, -- {small, medium, large} thumbnail URLs
+    -- Image-specific fields
+    image_variants JSONB, -- {original, large, medium, small, thumbnail} with URLs and dimensions
+    color_profile TEXT, -- sRGB, Adobe RGB, etc.
+    orientation INTEGER CHECK (orientation IS NULL OR orientation IN (1,2,3,4,5,6,7,8)), -- EXIF orientation
     -- Common processing fields
     processing_status TEXT DEFAULT 'pending' CHECK (processing_status IN ('pending', 'processing', 'completed', 'failed')),
     processing_metadata JSONB, -- Error messages, logs, processing details
     checksum TEXT, -- File integrity verification
     content_type TEXT DEFAULT 'application/pdf',
     created_at TIMESTAMPTZ DEFAULT NOW()
-    -- Note: file_type, image_variants, color_profile, and orientation columns are added via migration below
 );
 
 -- Add columns and foreign key constraints (handles both fresh installs and migrations)
 DO $$ 
 BEGIN
-    -- Add missing columns to products table
+    -- Add image_file_id column if it doesn't exist (for existing databases)
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'image_file_id'
@@ -57,47 +61,13 @@ BEGIN
         RAISE NOTICE 'Added image_file_id column to products table';
     END IF;
 
+    -- Add pdf_file_id column if it doesn't exist (for existing databases)
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'pdf_file_id'
     ) THEN
         ALTER TABLE products ADD COLUMN pdf_file_id UUID;
         RAISE NOTICE 'Added pdf_file_id column to products table';
-    END IF;
-
-    -- Add missing columns to file_uploads table for image support
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_schema = 'public' AND table_name = 'file_uploads' AND column_name = 'file_type'
-    ) THEN
-        ALTER TABLE file_uploads ADD COLUMN file_type TEXT NOT NULL DEFAULT 'pdf';
-        ALTER TABLE file_uploads ADD CONSTRAINT file_uploads_file_type_check CHECK (file_type IN ('pdf', 'image'));
-        RAISE NOTICE 'Added file_type column to file_uploads table';
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_schema = 'public' AND table_name = 'file_uploads' AND column_name = 'image_variants'
-    ) THEN
-        ALTER TABLE file_uploads ADD COLUMN image_variants JSONB;
-        RAISE NOTICE 'Added image_variants column to file_uploads table';
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_schema = 'public' AND table_name = 'file_uploads' AND column_name = 'color_profile'
-    ) THEN
-        ALTER TABLE file_uploads ADD COLUMN color_profile TEXT;
-        RAISE NOTICE 'Added color_profile column to file_uploads table';
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_schema = 'public' AND table_name = 'file_uploads' AND column_name = 'orientation'
-    ) THEN
-        ALTER TABLE file_uploads ADD COLUMN orientation INTEGER;
-        ALTER TABLE file_uploads ADD CONSTRAINT file_uploads_orientation_check CHECK (orientation IS NULL OR orientation IN (1,2,3,4,5,6,7,8));
-        RAISE NOTICE 'Added orientation column to file_uploads table';
     END IF;
 
     -- Now add foreign key constraints (only after columns exist)

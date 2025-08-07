@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useCart } from '../context/CartContext'
 import PDFViewer from './PDFViewer'
-import { isPDFProduct, getProductDisplayImage, formatPageCount, normalizeProductData } from '../utils/productUtils'
+import { isPDFProduct, formatPageCount, normalizeProductData } from '../utils/productUtils'
+import { getProductImage } from '../lib/supabase'
 
 export default function CustomerPreviewModal({ product, isOpen, onClose }) {
   const { addToCart } = useCart()
@@ -10,14 +11,21 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
   const [isZoomed, setIsZoomed] = useState(false)
   const [showWatermark, setShowWatermark] = useState(true)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [viewMode, setViewMode] = useState('image') // 'image' or 'pdf'
 
   // Normalize product data to ensure consistent access to file information
   const normalizedProduct = normalizeProductData(product)
 
-  // Product type detection
-  const isPDF = isPDFProduct(normalizedProduct)
-  const displayImage = getProductDisplayImage(normalizedProduct)
+  // Product type detection - handle hybrid products with both PDF and image
+  const hasUploadedImage = !!(normalizedProduct?.image_file_id)
+  const hasPDF = isPDFProduct(normalizedProduct)
+  const isHybrid = hasUploadedImage && hasPDF
+  const displayImage = getProductImage(normalizedProduct)?.url || '/api/placeholder/800/600'
   const pageCount = normalizedProduct?.page_count || 0
+  
+  // Determine what to show based on view mode and available content
+  const showPDF = hasPDF && (viewMode === 'pdf' || (!hasUploadedImage && hasPDF))
+  const showImage = hasUploadedImage && (viewMode === 'image' || !hasPDF)
 
   // Close modal on escape key and anti-theft protection
   useEffect(() => {
@@ -148,6 +156,7 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
     }
   }
 
+  // Early return if modal is not open or no product provided
   if (!isOpen || !product) return null
 
   return (
@@ -172,7 +181,7 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
               </h2>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span className="font-medium">${normalizedProduct.price}</span>
-                {isPDF && pageCount > 0 && (
+                {hasPDF && pageCount > 0 && (
                   <>
                     <span>•</span>
                     <span>{formatPageCount(pageCount)}</span>
@@ -199,8 +208,41 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
         <div className="flex flex-col lg:flex-row max-h-[calc(90vh-80px)]">
           {/* Preview Section */}
           <div className="flex-1 relative bg-gray-50">
-            {/* Watermark Toggle */}
-            <div className="absolute top-4 left-4 z-20">
+            {/* Control Buttons */}
+            <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+              {/* View Mode Toggle for Hybrid Products */}
+              {isHybrid && (
+                <div className="flex bg-black/70 rounded-lg backdrop-blur-sm overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('image')}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all ${
+                      viewMode === 'image' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Image
+                  </button>
+                  <button
+                    onClick={() => setViewMode('pdf')}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all ${
+                      viewMode === 'pdf' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    PDF ({pageCount})
+                  </button>
+                </div>
+              )}
+              
+              {/* Watermark Toggle */}
               <button
                 onClick={() => setShowWatermark(!showWatermark)}
                 className="flex items-center gap-2 bg-black/70 text-white px-3 py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition-all hover:bg-black/80"
@@ -226,7 +268,7 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
 
             {/* Main Preview */}
             <div className="relative w-full h-full min-h-[400px] lg:min-h-[600px] p-6 preview-protection">
-              {isPDF ? (
+              {showPDF ? (
                 <div className="relative w-full h-full">
                   <PDFViewer
                     product={normalizedProduct}
@@ -263,7 +305,7 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : showImage ? (
                 <div className="relative w-full h-full flex items-center justify-center">
                   <div className="relative max-w-full max-h-full">
                     <Image
@@ -309,6 +351,15 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                     )}
                   </div>
                 </div>
+              ) : (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p>No preview available</p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -351,7 +402,13 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                     <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
                     Lifetime access to downloads
                   </li>
-                  {isPDF && pageCount > 0 && (
+                  {isHybrid && (
+                    <li className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                      Both preview image and PDF content included
+                    </li>
+                  )}
+                  {hasPDF && pageCount > 0 && (
                     <li className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
                       {formatPageCount(pageCount)} in PDF format

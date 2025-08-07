@@ -132,8 +132,13 @@ export default function Home({ featuredProducts }) {
                     <ProductSkeleton key={index} />
                   ))
                 ) : (
-                  normalizedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} onProductClick={openProductModal} />
+                  normalizedProducts.map((product, index) => (
+                    <ProductCard 
+                      key={product.id} 
+                      product={product} 
+                      onProductClick={openProductModal}
+                      isPriority={index < 6} // First 6 images get priority loading
+                    />
                   ))
                 )}
               </div>

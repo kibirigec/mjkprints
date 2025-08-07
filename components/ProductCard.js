@@ -1,22 +1,32 @@
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { useCart } from '../context/CartContext'
-import { isPDFProduct, getProductDisplayImage, formatPageCount, PDFBadge, PDFPageIndicator, normalizeProductData } from '../utils/productUtils'
+import { isPDFProduct, formatPageCount, PDFBadge, PDFPageIndicator, normalizeProductData } from '../utils/productUtils'
+import { getProductImage } from '../lib/supabase'
 import { PDFPageIndicator as PDFPageIndicatorComponent, PDFBadge as PDFBadgeComponent } from './PDFViewer'
 
-export default function ProductCard({ product, onProductClick }) {
+function ProductCard({ product, onProductClick, isPriority = false }) {
   const { addToCart } = useCart()
   const [isAdding, setIsAdding] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
   
+  // Early return if no product provided
+  if (!product) {
+    return null
+  }
+  
   // Normalize product data to ensure consistent access to file information
   const normalizedProduct = normalizeProductData(product)
   
-  // Product type detection
-  const isPDF = isPDFProduct(normalizedProduct)
-  const displayImage = getProductDisplayImage(normalizedProduct)
-  const pageCount = normalizedProduct?.page_count || 0
+  // Memoize expensive calculations to prevent unnecessary recalculations
+  const { isPDF, displayImage, pageCount } = useMemo(() => {
+    return {
+      isPDF: isPDFProduct(normalizedProduct),
+      displayImage: getProductImage(normalizedProduct)?.url || '/api/placeholder/400/400',
+      pageCount: normalizedProduct?.page_count || 0
+    }
+  }, [normalizedProduct])
   
   // Fallback image for when display image fails to load
   const fallbackImage = '/api/placeholder/400/400'
@@ -90,6 +100,7 @@ export default function ProductCard({ product, onProductClick }) {
               src={imageError ? fallbackImage : displayImage}
               alt={normalizedProduct.title}
               fill
+              priority={isPriority}
               className={`object-cover group-hover:scale-105 transition-transform duration-300 ease-out ${
                 imageLoading ? 'opacity-0' : 'opacity-100'
               }`}
@@ -98,8 +109,8 @@ export default function ProductCard({ product, onProductClick }) {
               onError={handleImageError}
             />
             
-            {/* Subtle overlay on hover */}
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            {/* Subtle overlay on hover - GPU accelerated */}
+            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 will-change-[opacity]" />
 
             {/* PDF Badge - Top Left */}
             {isPDF && (
@@ -117,7 +128,7 @@ export default function ProductCard({ product, onProductClick }) {
 
             {/* Favorite/Heart Icon - Positioned to avoid conflicts */}
             <button 
-              className={`absolute w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-white ${
+              className={`absolute w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-white will-change-[opacity] ${
                 isPDF && pageCount > 0 ? 'top-12 right-3' : 'top-3 right-3'
               }`}
               onClick={(e) => {
@@ -135,7 +146,7 @@ export default function ProductCard({ product, onProductClick }) {
             <button
               onClick={handleAddToCart}
               disabled={isAdding}
-              className="absolute bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-800 disabled:opacity-50"
+              className="absolute bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white px-4 py-2 rounded-full text-sm font-medium transition-opacity duration-200 hover:bg-gray-800 disabled:opacity-50 will-change-[opacity]"
             >
               {isAdding ? (
                 <div className="flex items-center space-x-2">
@@ -204,3 +215,6 @@ export default function ProductCard({ product, onProductClick }) {
     </div>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(ProductCard)
