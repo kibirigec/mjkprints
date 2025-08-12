@@ -7,9 +7,23 @@ import {
   createProductWithImage,
   updateProductWithPDFInfo
 } from '../../lib/supabase'
+import { verifyAdminSession } from './admin/auth'
 
 export default async function handler(req, res) {
   const { method } = req
+
+  // Protect write operations (POST, PUT, DELETE) with authentication
+  if (['POST', 'PUT', 'DELETE'].includes(method)) {
+    try {
+      const isAuthenticated = verifyAdminSession(req, res)
+      if (!isAuthenticated) {
+        return // Response already sent by verifyAdminSession
+      }
+    } catch (error) {
+      console.error('Authentication error:', error)
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+  }
 
   try {
     switch (method) {

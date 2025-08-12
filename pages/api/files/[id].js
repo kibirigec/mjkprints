@@ -3,6 +3,7 @@ import {
   updateFileProcessingStatus,
   supabase
 } from '../../../lib/supabase'
+import { verifyAdminSession } from '../admin/auth'
 
 export default async function handler(req, res) {
   const { method, query } = req
@@ -10,6 +11,19 @@ export default async function handler(req, res) {
 
   if (!id) {
     return res.status(400).json({ error: 'File ID is required' })
+  }
+
+  // Protect write operations (PUT, DELETE) with authentication
+  if (['PUT', 'DELETE'].includes(method)) {
+    try {
+      const isAuthenticated = verifyAdminSession(req, res)
+      if (!isAuthenticated) {
+        return // Response already sent by verifyAdminSession
+      }
+    } catch (error) {
+      console.error('Authentication error:', error)
+      return res.status(401).json({ error: 'Authentication required' })
+    }
   }
 
   try {
