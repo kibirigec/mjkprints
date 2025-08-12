@@ -295,3 +295,54 @@ export function shouldShowPreviewLimitNotice(product) {
   
   return pageCount > previewLimit
 }
+
+/**
+ * Generate a consistent "sold" count for a product based on its ID
+ * This ensures the same product always shows the same sold count
+ * @param {Object} product - The product object
+ * @returns {string} - Formatted sold count like "30+ sold"
+ */
+export function getProductSoldCount(product) {
+  if (!product?.id) {
+    return '10+ sold' // Fallback for products without ID
+  }
+  
+  // Create a simple hash from the product ID to get consistent results
+  let hash = 0
+  const id = product.id.toString()
+  for (let i = 0; i < id.length; i++) {
+    const char = id.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  
+  // Make hash positive
+  hash = Math.abs(hash)
+  
+  // Define sold count brackets with weights (more likely to get lower numbers)
+  const brackets = [
+    { count: '10+', weight: 30 },
+    { count: '30+', weight: 25 },
+    { count: '50+', weight: 20 },
+    { count: '100+', weight: 15 },
+    { count: '200+', weight: 7 },
+    { count: '500+', weight: 3 }
+  ]
+  
+  // Calculate total weight
+  const totalWeight = brackets.reduce((sum, bracket) => sum + bracket.weight, 0)
+  
+  // Use hash to select bracket
+  const selection = hash % totalWeight
+  let currentWeight = 0
+  
+  for (const bracket of brackets) {
+    currentWeight += bracket.weight
+    if (selection < currentWeight) {
+      return `${bracket.count} sold`
+    }
+  }
+  
+  // Fallback (should never reach here)
+  return '30+ sold'
+}

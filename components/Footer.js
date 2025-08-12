@@ -19,20 +19,10 @@ export default function Footer() {
 
           <div>
             <h3 className="text-lg font-semibold mb-4">Shop</h3>
-            <ul className="space-y-2">
-              <li><Link href="/" className="text-accent/80 hover:text-accent transition-colors">All Prints</Link></li>
-              <li><Link href="/" className="text-accent/80 hover:text-accent transition-colors">New Arrivals</Link></li>
-              <li><Link href="/" className="text-accent/80 hover:text-accent transition-colors">Best Sellers</Link></li>
-            </ul>
           </div>
 
           <div>
             <h3 className="text-lg font-semibold mb-4">Sell</h3>
-            <ul className="space-y-2">
-              <li><Link href="/dashboard" className="text-accent/80 hover:text-accent transition-colors">Seller Dashboard</Link></li>
-              <li><Link href="/dashboard" className="text-accent/80 hover:text-accent transition-colors">Upload Prints</Link></li>
-              <li><Link href="/" className="text-accent/80 hover:text-accent transition-colors">Guidelines</Link></li>
-            </ul>
           </div>
         </div>
 

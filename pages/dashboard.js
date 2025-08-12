@@ -1,12 +1,15 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Header from '../components/Header';
+import Link from 'next/link';
 import Footer from '../components/Footer';
 import DashboardTable from '../components/DashboardTable';
 import ProductModal from '../components/ProductModal';
+import PasscodeProtection from '../components/PasscodeProtection';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function Dashboard() {
+  const { logout, updateActivity } = useAdminAuth()
   const [products, setProducts] = useState([]);
   const [files, setFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,6 +21,24 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [editingProduct, setEditingProduct] = useState(null);
+
+  // Update activity when user interacts with dashboard
+  useEffect(() => {
+    const handleUserActivity = () => {
+      updateActivity()
+    }
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
+    events.forEach(event => {
+      document.addEventListener(event, handleUserActivity, true)
+    })
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserActivity, true)
+      })
+    }
+  }, [updateActivity])
 
   useEffect(() => {
     fetchProducts();
@@ -136,12 +157,50 @@ export default function Dashboard() {
   return (
     <>
       <Head>
-        <title>Seller Dashboard - MJK Prints</title>
-        <meta name="description" content="Manage your digital prints and track sales" />
+        <title>Admin Dashboard - MJK Prints</title>
+        <meta name="description" content="Secure admin dashboard for managing digital prints" />
       </Head>
-      <div className="min-h-screen bg-accent">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      <PasscodeProtection>
+        <div className="min-h-screen bg-accent">
+          {/* Minimal Header with Logo Only */}
+          <header className="bg-white shadow-sm border-b border-gray-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                {/* Logo Only */}
+                <Link href="/" className="flex items-center space-x-3 group">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-light rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-200">
+                    <span className="text-accent font-bold text-xl">M</span>
+                  </div>
+                  <div className="hidden sm:block">
+                    <span className="text-2xl font-bold text-primary group-hover:text-secondary transition-colors duration-200">MJK Prints</span>
+                    <div className="text-xs text-gray-500 -mt-1">Digital Art Gallery</div>
+                  </div>
+                </Link>
+                
+                {/* Admin Controls */}
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 text-primary">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 616 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-medium">Admin</span>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center space-x-1"
+                  >
+                    <span>Logout</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar */}
             <aside className="lg:w-64">
@@ -159,22 +218,14 @@ export default function Dashboard() {
                     Products
                   </button>
                   <button
-                    onClick={() => setActiveTab('files')}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      activeTab === 'files'
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                    disabled
+                    className="w-full text-left px-4 py-2 rounded-lg text-gray-400 cursor-not-allowed"
                   >
                     PDF Files
                   </button>
                   <button
-                    onClick={() => setActiveTab('settings')}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      activeTab === 'settings'
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                    disabled
+                    className="w-full text-left px-4 py-2 rounded-lg text-gray-400 cursor-not-allowed"
                   >
                     Settings
                   </button>
@@ -382,8 +433,9 @@ export default function Dashboard() {
           onSave={handleModalSave}
           onSuccess={handleModalSuccess}
         />
-        <Footer />
-      </div>
+          <Footer />
+        </div>
+      </PasscodeProtection>
     </>
   );
 }

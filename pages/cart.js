@@ -1,30 +1,66 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
+import { getProductImage } from '../lib/supabase'
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 export default function CartPage() {
+  const router = useRouter()
   const { cart, updateQuantity, removeFromCart, getTotal, clearCart } = useCart()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [email, setEmail] = useState('')
   const [showEmailForm, setShowEmailForm] = useState(false)
+  const [emailError, setEmailError] = useState('')
+
+  // Auto-show email form when coming from "Buy Now"
+  useEffect(() => {
+    if (router.query.buy_now === 'true') {
+      setShowEmailForm(true)
+    }
+  }, [router.query.buy_now])
+
+  // Email validation function
+  const validateEmail = (emailValue) => {
+    if (!emailValue) {
+      return 'Email is required'
+    }
+    if (!emailValue.includes('@') || !emailValue.includes('.') || emailValue.length < 5) {
+      return 'Please enter a valid email address'
+    }
+    return ''
+  }
+
+  // Handle email change with validation
+  const handleEmailChange = (e) => {
+    const value = e.target.value
+    setEmail(value)
+    const error = validateEmail(value)
+    setEmailError(error)
+  }
 
   const handleCheckout = async () => {
-    if (!email || !email.includes('@')) {
-      setShowEmailForm(true)
+    console.log('🛒 Starting checkout process...', { email, cartItems: cart.length })
+    
+    // Validate email
+    const emailValidationError = validateEmail(email)
+    if (emailValidationError) {
+      console.log('❌ Email validation failed:', email)
+      setEmailError(emailValidationError)
       return
     }
 
     setIsCheckingOut(true)
     
     try {
+      console.log('📡 Creating checkout session...')
       // Create Stripe checkout session
       const response = await fetch('/api/checkout/session', {
         method: 'POST',
@@ -41,26 +77,44 @@ export default function CartPage() {
         }),
       })
 
-      const { sessionId, error } = await response.json()
+      console.log('📡 Checkout API response status:', response.status)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API request failed:', response.status, errorText)
+        throw new Error(`API request failed with status ${response.status}`)
+      }
 
-      if (response.ok && sessionId) {
+      const responseData = await response.json()
+      console.log('📡 Checkout API response data:', responseData)
+      
+      const { sessionId, error } = responseData
+
+      if (sessionId) {
+        console.log('🏪 Redirecting to Stripe checkout...', sessionId)
         // Redirect to Stripe Checkout
         const stripe = await stripePromise
+        
+        if (!stripe) {
+          console.error('❌ Failed to load Stripe')
+          throw new Error('Failed to load Stripe')
+        }
         
         const { error: stripeError } = await stripe.redirectToCheckout({
           sessionId: sessionId,
         })
 
         if (stripeError) {
-          console.error('Stripe redirect error:', stripeError)
-          alert('Checkout failed. Please try again.')
+          console.error('❌ Stripe redirect error:', stripeError)
+          alert(`Checkout failed: ${stripeError.message || 'Please try again.'}`)
         }
       } else {
+        console.error('❌ No session ID received:', error)
         alert(error || 'Checkout failed. Please try again.')
       }
     } catch (error) {
-      console.error('Checkout error:', error)
-      alert('Checkout failed. Please try again.')
+      console.error('❌ Checkout error:', error)
+      alert(`Checkout failed: ${error.message || 'Please check your connection and try again.'}`)
     } finally {
       setIsCheckingOut(false)
     }
@@ -100,11 +154,14 @@ export default function CartPage() {
                     <div className="flex items-center space-x-6">
                       <div className="w-20 h-20 relative bg-gray-100 rounded-lg overflow-hidden">
                         <Image
-                          src={item.image}
+                          src={getProductImage(item, 'medium')?.url || item.image || '/api/placeholder/300/300'}
                           alt={item.title}
                           fill
                           className="object-cover"
                           sizes="80px"
+                          onError={(e) => {
+                            e.target.src = '/api/placeholder/300/300'
+                          }}
                         />
                       </div>
                       
@@ -122,20 +179,9 @@ export default function CartPage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center space-x-3">
-                        <button
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                        >
-                          -
-                        </button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                        >
-                          +
-                        </button>
+                      {/* Digital download indicator */}
+                      <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-lg">
+                        1× Digital Download
                       </div>
 
                       <button
@@ -159,10 +205,10 @@ export default function CartPage() {
                     {cart.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          {item.title} × {item.quantity}
+                          {item.title}
                         </span>
                         <span className="font-medium">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ${item.price.toFixed(2)}
                         </span>
                       </div>
                     ))}
@@ -176,31 +222,56 @@ export default function CartPage() {
                   </div>
 
                   {/* Email Collection Form */}
-                  {(showEmailForm || email) && (
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Download links will be sent to this email address
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={handleEmailChange}
+                      placeholder="your@email.com"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                        emailError 
+                          ? 'border-red-300 focus:ring-red-200 focus:border-red-500' 
+                          : email && !emailError
+                            ? 'border-green-300 focus:ring-green-200 focus:border-green-500'
+                            : 'border-gray-300 focus:ring-secondary focus:border-transparent'
+                      }`}
+                      required
+                    />
+                    {emailError && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {emailError}
                       </p>
-                    </div>
-                  )}
+                    )}
+                    {!emailError && email && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Valid email address
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Download links will be sent to this email address
+                    </p>
+                  </div>
 
                   <button
                     onClick={handleCheckout}
-                    disabled={isCheckingOut}
-                    className="w-full btn-primary mb-4"
+                    disabled={isCheckingOut || !!emailError || !email}
+                    className={`w-full mb-4 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                      isCheckingOut || !!emailError || !email
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg'
+                    }`}
                   >
-                    {isCheckingOut ? 'Processing...' : 'Proceed to Checkout'}
+                    {isCheckingOut ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Processing...</span>
+                      </div>
+                    ) : (
+                      'Proceed to Checkout'
+                    )}
                   </button>
 
                   <Link href="/" className="block text-center text-secondary hover:text-secondary/80 transition-colors">

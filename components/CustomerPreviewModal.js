@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/router'
 import { useCart } from '../context/CartContext'
+import { generateShareableModalLink, copyUrlToClipboard } from '../utils/urlUtils'
 import PDFViewer from './PDFViewer'
 import { isPDFProduct, formatPageCount, normalizeProductData } from '../utils/productUtils'
 import { getProductImage } from '../lib/supabase'
 
 export default function CustomerPreviewModal({ product, isOpen, onClose }) {
+  const router = useRouter()
   const { addToCart } = useCart()
   const [isLoading, setIsLoading] = useState(false)
   const [isZoomed, setIsZoomed] = useState(false)
-  const [showWatermark, setShowWatermark] = useState(true)
+  const showWatermark = true // Always show watermark
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [viewMode, setViewMode] = useState('image') // 'image' or 'pdf'
+  const [shareStatus, setShareStatus] = useState('') // For share feedback
 
   // Normalize product data to ensure consistent access to file information
   const normalizedProduct = normalizeProductData(product)
@@ -121,37 +125,43 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
     }, 800)
   }
 
-  // Direct purchase handler (navigates to checkout)
-  const handleBuyNow = async () => {
+  // Share link handler
+  const handleShareLink = async () => {
+    try {
+      const shareableUrl = generateShareableModalLink(normalizedProduct.id)
+      const success = await copyUrlToClipboard(shareableUrl)
+      
+      if (success) {
+        setShareStatus('✓ Link copied!')
+        setTimeout(() => setShareStatus(''), 3000)
+      } else {
+        setShareStatus('✗ Copy failed')
+        setTimeout(() => setShareStatus(''), 3000)
+      }
+    } catch (error) {
+      console.error('Share failed:', error)
+      setShareStatus('✗ Share failed')
+      setTimeout(() => setShareStatus(''), 3000)
+    }
+  }
+
+  // Buy now handler (adds to cart and redirects to checkout)
+  const handleBuyNow = () => {
     setIsLoading(true)
     
     try {
-      // Create immediate checkout session
-      const response = await fetch('/api/checkout/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: [{ product, quantity: 1 }],
-          direct_purchase: true
-        })
-      })
-
-      const data = await response.json()
+      // Add item to cart
+      addToCart(normalizedProduct, 1)
       
-      if (data.url) {
-        // Redirect to Stripe checkout
-        window.location.href = data.url
-      } else {
-        throw new Error(data.error || 'Failed to create checkout session')
-      }
+      // Close modal and redirect to cart with email form
+      onClose()
+      
+      // Navigate to cart page with buy_now parameter to auto-show email form
+      router.push('/cart?buy_now=true')
+      
     } catch (error) {
-      console.error('Checkout error:', error)
-      const errorMessage = error.message?.includes('Stripe is not configured') 
-        ? 'Payment system is currently unavailable. Please try again later.'
-        : 'Purchase failed. Please try again or contact support.'
-      alert(errorMessage)
+      console.error('Add to cart error:', error)
+      alert('Failed to add item to cart. Please try again.')
       setIsLoading(false)
     }
   }
@@ -193,78 +203,45 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-            aria-label="Close preview"
-          >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {/* Share and Close Buttons */}
+          <div className="flex items-center gap-3">
+            {/* Share Button */}
+            <div className="relative">
+              <button
+                onClick={handleShareLink}
+                className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                aria-label="Share product"
+                title="Copy shareable link"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                </svg>
+              </button>
+              
+              {/* Share Status Tooltip */}
+              {shareStatus && (
+                <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-3 py-1 rounded whitespace-nowrap z-50">
+                  {shareStatus}
+                </div>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+              aria-label="Close preview"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row max-h-[calc(90vh-80px)]">
           {/* Preview Section */}
           <div className="flex-1 relative bg-gray-50">
-            {/* Control Buttons */}
-            <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-              {/* View Mode Toggle for Hybrid Products */}
-              {isHybrid && (
-                <div className="flex bg-black/70 rounded-lg backdrop-blur-sm overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('image')}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all ${
-                      viewMode === 'image' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-white/80 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Image
-                  </button>
-                  <button
-                    onClick={() => setViewMode('pdf')}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all ${
-                      viewMode === 'pdf' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-white/80 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    PDF ({pageCount})
-                  </button>
-                </div>
-              )}
-              
-              {/* Watermark Toggle */}
-              <button
-                onClick={() => setShowWatermark(!showWatermark)}
-                className="flex items-center gap-2 bg-black/70 text-white px-3 py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition-all hover:bg-black/80"
-              >
-                {showWatermark ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                    </svg>
-                    Hide Watermark
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Show Watermark
-                  </>
-                )}
-              </button>
-            </div>
 
             {/* Main Preview */}
             <div className="relative w-full h-full min-h-[400px] lg:min-h-[600px] p-6 preview-protection">
@@ -299,9 +276,6 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                         backgroundSize: '141px 141px'
                       }} />
                       
-                      <div className="absolute bottom-6 right-6 bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm border border-white/20">
-                        🔒 Preview Mode • Purchase for Full Access
-                      </div>
                     </div>
                   )}
                 </div>
@@ -344,9 +318,6 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                           backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 80px, rgba(255,255,255,0.3) 80px, rgba(255,255,255,0.3) 82px)',
                         }} />
                         
-                        <div className="absolute bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm font-medium backdrop-blur-sm border border-white/30 shadow-lg">
-                          🔒 Preview Mode • Purchase for Full Resolution
-                        </div>
                       </div>
                     )}
                   </div>

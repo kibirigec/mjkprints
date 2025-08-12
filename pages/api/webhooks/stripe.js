@@ -1,6 +1,6 @@
 import { buffer } from 'micro'
 import { verifyWebhookSignature } from '../../../lib/stripe'
-import { updateOrderStatus, createDownloadLinks, getOrderById } from '../../../lib/supabase'
+import { updateOrderStatus, createDownloadLinks, getOrderById, getProductFilesForAttachment } from '../../../lib/supabase'
 import { sendOrderConfirmationEmail } from '../../../lib/email'
 
 // Disable body parsing for webhook
@@ -80,15 +80,42 @@ async function handleCheckoutSessionCompleted(session) {
     const orderWithItems = await getOrderById(orderId)
 
     if (orderWithItems && orderWithItems.order_items) {
-      // Create download links
-      const downloadLinks = await createDownloadLinks(orderWithItems.order_items, email)
-      console.log(`Created download links for order: ${orderId}`)
+      console.log(`Processing order items for attachment delivery: ${orderId}`)
+      
+      // Try to get files for email attachment first
+      let attachmentFiles = []
+      let downloadLinks = []
+      
+      try {
+        console.log('[WEBHOOK] Attempting to retrieve files for email attachment')
+        attachmentFiles = await getProductFilesForAttachment(orderWithItems.order_items)
+        console.log(`[WEBHOOK] Retrieved ${attachmentFiles.length} files for attachment`)
+        
+        // Always create download links as backup
+        downloadLinks = await createDownloadLinks(orderWithItems.order_items, email)
+        console.log(`[WEBHOOK] Created ${downloadLinks.length} backup download links`)
+        
+      } catch (fileError) {
+        console.error('[WEBHOOK] Error retrieving files for attachment:', fileError.message)
+        console.log('[WEBHOOK] Falling back to download links only')
+        
+        // Fallback to download links if file retrieval fails
+        downloadLinks = await createDownloadLinks(orderWithItems.order_items, email)
+      }
 
-      // Send order confirmation email with download links
-      const emailResult = await sendOrderConfirmationEmail(orderWithItems, downloadLinks)
+      // Send order confirmation email with attachments and/or download links
+      const emailResult = await sendOrderConfirmationEmail(
+        orderWithItems, 
+        downloadLinks,
+        attachmentFiles
+      )
       
       if (emailResult.success) {
-        console.log(`Order confirmation email sent for order: ${orderId}`)
+        console.log(`Order confirmation email sent for order: ${orderId}`, {
+          attachmentCount: attachmentFiles.length,
+          downloadLinkCount: downloadLinks.length,
+          deliveryMethod: attachmentFiles.length > 0 ? 'email_attachment' : 'download_links'
+        })
       } else {
         console.error(`Failed to send confirmation email for order ${orderId}:`, emailResult.error)
       }
@@ -97,6 +124,8 @@ async function handleCheckoutSessionCompleted(session) {
   } catch (error) {
     console.error('Error processing checkout session completion:', error)
   }
+  // Explicitly return void to prevent API handler warnings
+  return
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
@@ -109,6 +138,8 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
   } catch (error) {
     console.error('Error processing payment intent success:', error)
   }
+  // Explicitly return void to prevent API handler warnings
+  return
 }
 
 async function handlePaymentIntentFailed(paymentIntent) {
@@ -121,4 +152,6 @@ async function handlePaymentIntentFailed(paymentIntent) {
   } catch (error) {
     console.error('Error processing payment intent failure:', error)
   }
+  // Explicitly return void to prevent API handler warnings
+  return
 }

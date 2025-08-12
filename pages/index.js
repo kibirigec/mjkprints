@@ -1,20 +1,35 @@
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
+import Image from 'next/image'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import ProductCard from '../components/ProductCard'
 import CustomerPreviewModal from '../components/CustomerPreviewModal'
 import ProductSkeleton from '../components/ProductSkeleton'
 import { normalizeProductList } from '../utils/productUtils'
+import { generateModalLink, isModalUrl, getProductIdFromQuery } from '../utils/urlUtils'
 
 export default function Home({ featuredProducts }) {
-  const [selectedProduct, setSelectedProduct] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   
-  // Normalize products data for consistent handling
-  const normalizedProducts = normalizeProductList(featuredProducts || [])
+  // Normalize products data for consistent handling and sort by creation date (newest first)
+  const normalizedProducts = normalizeProductList(featuredProducts || []).sort((a, b) => {
+    const dateA = new Date(a.created_at || a.createdAt || 0)
+    const dateB = new Date(b.created_at || b.createdAt || 0)
+    return dateB - dateA // Newest first
+  })
+  
+  // Extract modal state from URL parameters using utility functions
+  const isModalOpen = isModalUrl(router.query)
+  const modalProductId = getProductIdFromQuery(router.query)
+  
+  // Find the selected product based on URL parameter
+  const selectedProduct = modalProductId 
+    ? normalizedProducts.find(product => product.id === modalProductId)
+    : null
 
   useEffect(() => {
     // Simulate loading state even with static props
@@ -26,13 +41,12 @@ export default function Home({ featuredProducts }) {
   }, [])
 
   const openProductModal = (product) => {
-    setSelectedProduct(product)
-    setIsModalOpen(true)
+    const modalUrl = generateModalLink(product.id)
+    router.push(modalUrl, undefined, { shallow: true })
   }
 
   const closeProductModal = () => {
-    setSelectedProduct(null)
-    setIsModalOpen(false)
+    router.push('/', undefined, { shallow: true })
   }
 
 
@@ -47,69 +61,115 @@ export default function Home({ featuredProducts }) {
         <Header />
         
         <main>
-          {/* Hero Section - Value Proposition */}
-          <section className="bg-gradient-to-br from-accent via-white to-secondary/10 py-12 md:py-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center max-w-4xl mx-auto">
-                <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6 leading-tight">
-                  Discover unique
-                  <span className="block text-secondary"> digital art</span>
+          {/* Hero Section - Erin Condren Style */}
+          <section className="py-8 md:py-16" style={{backgroundColor: '#F6F1E8'}}>
+            {/* Mobile and Tablet: Stacked Layout */}
+            <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6">
+              <div className="text-center mb-8">
+                <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">NEW 2025-2026</p>
+                <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4 leading-tight">
+                  Best-Selling
+                  <span className="block text-secondary italic"> Digital Planners</span>
                 </h1>
-                <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-                  Browse our curated collection of high-quality digital prints from independent artists. Instant downloads, unlimited creativity.
-                </p>
                 
-                {/* Value Propositions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg mb-4">
-                      <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-primary mb-2">Instant Download</h3>
-                    <p className="text-sm text-gray-600">Get your files immediately after purchase</p>
+                {/* Key Benefits for Mobile */}
+                <div className="flex flex-wrap justify-center gap-4 mb-6 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700">Organized for productivity</span>
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg mb-4">
-                      <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-primary mb-2">Independent Artists</h3>
-                    <p className="text-sm text-gray-600">Support creators directly with every purchase</p>
-                  </div>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg mb-4">
-                      <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-primary mb-2">High Quality</h3>
-                    <p className="text-sm text-gray-600">Premium digital files ready for any project</p>
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700">Instant download</span>
                   </div>
                 </div>
 
-                {/* Call to Action */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button 
-                    onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
-                    className="inline-flex items-center px-8 py-4 bg-primary text-white font-medium rounded-full hover:bg-primary-light transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    Browse Collection
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <Link href="/gallery" className="inline-flex items-center px-8 py-4 border-2 border-primary text-primary font-medium rounded-full hover:bg-primary hover:text-white transition-all duration-300">
-                    View All Art
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </Link>
-                </div>
+                <button 
+                  onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center px-8 py-3 bg-primary text-white font-bold text-sm uppercase tracking-wide hover:bg-primary-light transition-colors duration-200"
+                >
+                  SHOP NOW
+                </button>
+              </div>
+              
+              {/* Featured Background Image for Mobile/Tablet */}
+              <div className="relative h-[300px] md:h-[400px] overflow-hidden rounded-lg">
+                <Image 
+                  src="/images/pln4.jpg"
+                  alt="Digital Art Collection"
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="100vw"
+                />
               </div>
             </div>
+
+            {/* Desktop: Full-Width Background with Text Overlay */}
+            <div className="hidden lg:block relative h-[500px]">
+              {/* Background Image */}
+              <Image 
+                src="/images/pln4.jpg"
+                alt="Digital Art Collection"
+                fill
+                className="object-cover"
+                priority
+                sizes="100vw"
+              />
+
+                {/* Text Overlay */}
+                <div className="absolute inset-y-0 right-8 flex items-center pointer-events-none z-10">
+                  <div className="bg-white/95 backdrop-blur-sm p-8 w-[585px] shadow-lg text-center">
+                    <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">NEW 2025-2026</p>
+                    <h1 className="text-4xl xl:text-5xl font-bold text-primary mb-2 leading-tight">
+                      Best-Selling
+                    </h1>
+                    <h2 className="text-4xl xl:text-5xl font-bold italic text-secondary mb-6 leading-tight">
+                      Digital Planners
+                    </h2>
+                    
+                    {/* Shop Now Button */}
+                    <button 
+                      onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
+                      className="pointer-events-auto inline-flex items-center px-8 py-3 bg-primary text-white font-bold text-sm uppercase tracking-wide hover:bg-primary-light transition-colors duration-200 mb-6"
+                    >
+                      SHOP NOW
+                    </button>
+
+                    {/* Key Benefits - 2x2 Grid */}
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <div className="flex items-start space-x-2">
+                        <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-gray-700">Goal setting & tracking</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-gray-700">Daily & weekly layouts</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-gray-700">Habit tracker included</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-gray-700">Print & use immediately</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
           </section>
 
 
@@ -138,6 +198,7 @@ export default function Home({ featuredProducts }) {
                       product={product} 
                       onProductClick={openProductModal}
                       isPriority={index < 6} // First 6 images get priority loading
+                      showNewBadge={index < 2} // First 2 products get NEW badge
                     />
                   ))
                 )}
@@ -155,17 +216,6 @@ export default function Home({ featuredProducts }) {
                 </div>
               )}
 
-              {/* View All Button */}
-              {!isLoading && normalizedProducts.length > 0 && (
-                <div className="text-center mt-12">
-                  <Link href="/gallery" className="inline-flex items-center px-8 py-3 border-2 border-primary text-primary font-medium rounded-full hover:bg-primary hover:text-white transition-all duration-300">
-                    View all artwork
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </Link>
-                </div>
-              )}
             </div>
           </section>
 
@@ -174,19 +224,10 @@ export default function Home({ featuredProducts }) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center">
                 <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
-                  Join our creative community
+                Boost your productivity with ease
                 </h2>
                 <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-                  Get inspired by thousands of digital artists and find the perfect piece for your next project
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/dashboard" className="inline-flex items-center px-8 py-3 bg-primary text-white font-medium rounded-full hover:bg-primary-light transition-all duration-300">
-                    Start creating
-                  </Link>
-                  <Link href="/gallery" className="inline-flex items-center px-8 py-3 border-2 border-primary text-primary font-medium rounded-full hover:bg-primary hover:text-white transition-all duration-300">
-                    Browse gallery
-                  </Link>
-                </div>
+                Explore our beautifully crafted digital planners designed to help you organize your life, set clear goals, and stay focused on what truly matters.                </p>
               </div>
             </div>
           </section>
