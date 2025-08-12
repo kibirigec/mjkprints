@@ -4,6 +4,7 @@ import { fileTypeFromBuffer } from 'file-type'
 import crypto from 'crypto'
 import pdfParse from 'pdf-parse'
 import { createFileUpload, uploadFileToStorage, checkStorageBucketExists, getStorageBucketInfo } from '../../../lib/supabase'
+import { verifyAdminSession } from '../admin/auth'
 
 // Configure Next.js to disable bodyParser for this route
 export const config = {
@@ -193,6 +194,19 @@ export default async function handler(req, res) {
     res.setHeader('Allow', ['POST'])
     log('warn', 'Invalid method attempted', { requestId, method: req.method })
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Authentication check for admin uploads
+  try {
+    const isAuthenticated = verifyAdminSession(req, res)
+    if (!isAuthenticated) {
+      log('warn', 'Unauthenticated upload attempt', { requestId })
+      return // Response already sent by verifyAdminSession
+    }
+    log('info', 'Authentication successful', { requestId })
+  } catch (error) {
+    log('error', 'Authentication error', { requestId, error: error.message })
+    return res.status(401).json({ error: 'Authentication required' })
   }
 
   // Rate limiting
