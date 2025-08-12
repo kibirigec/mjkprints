@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import PDFUploadZone from './PDFUploadZone';
+import ImageUploadZone from './ImageUploadZone';
 import PDFPreviewComponent from './PDFPreviewComponent';
 
 const ProductModal = ({ 
@@ -24,8 +25,14 @@ const ProductModal = ({
   const [pdfProcessingStatus, setPdfProcessingStatus] = useState('idle');
   const [pdfError, setPdfError] = useState(null);
   
+  // Image upload state
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [processedImageData, setProcessedImageData] = useState(null);
+  const [imageProcessingStatus, setImageProcessingStatus] = useState('idle');
+  const [imageError, setImageError] = useState(null);
+  
   // UI state
-  const [useImageUrl, setUseImageUrl] = useState(false);
+  const [uploadMode, setUploadMode] = useState('pdf'); // 'pdf' is primary product, then complementary image
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -44,7 +51,16 @@ const ProductModal = ({
           price: editProduct.price?.toString() || '',
           image: editProduct.image || ''
         });
-        setUseImageUrl(!!editProduct.image && !editProduct.pdfData);
+        // Determine upload mode based on existing data
+        if (editProduct.image_file_id) {
+          setUploadMode('image');
+        } else if (editProduct.pdf_file_id) {
+          setUploadMode('pdf');
+        } else if (editProduct.image) {
+          setUploadMode('url');
+        } else {
+          setUploadMode('pdf'); // Default to PDF upload (primary product)
+        }
       } else {
         resetForm();
       }
@@ -56,16 +72,24 @@ const ProductModal = ({
     }
   }, [isOpen, mode, editProduct]);
 
-  // Clear errors when PDF processing status changes (defensive handling)
+  // Clear errors when processing status changes (defensive handling)
   useEffect(() => {
     if (pdfProcessingStatus === 'processing' || pdfProcessingStatus === 'completed') {
       setErrors(prev => ({ 
         ...prev, 
-        pdf: null, 
-        image: null 
+        pdf: null
       }));
     }
   }, [pdfProcessingStatus]);
+
+  useEffect(() => {
+    if (imageProcessingStatus === 'processing' || imageProcessingStatus === 'completed') {
+      setErrors(prev => ({ 
+        ...prev, 
+        image: null
+      }));
+    }
+  }, [imageProcessingStatus]);
 
   // Handle ESC key and outside click
   useEffect(() => {
@@ -96,11 +120,21 @@ const ProductModal = ({
 
   const resetForm = () => {
     setFormData({ title: '', description: '', price: '', image: '' });
+    
+    // Reset PDF state
     setUploadedPDF(null);
     setProcessedPDFData(null);
     setPdfProcessingStatus('idle');
     setPdfError(null);
-    setUseImageUrl(false);
+    
+    // Reset image state
+    setUploadedImage(null);
+    setProcessedImageData(null);
+    setImageProcessingStatus('idle');
+    setImageError(null);
+    
+    // Reset UI state
+    setUploadMode('pdf');
     setErrors({}); // Clear all errors
     setShowSuccessMessage(false);
     
@@ -140,16 +174,26 @@ const ProductModal = ({
       newErrors.price = 'Valid price is required';
     }
 
-    if (!useImageUrl && !processedPDFData) {
-      newErrors.pdf = 'Please upload and process a PDF, or switch to Image URL mode';
+    // Image upload is now MANDATORY regardless of mode
+    if (!processedImageData && !formData.image.trim()) {
+      newErrors.image = 'Product image is required - please upload an image or provide a URL';
     }
 
-    if (useImageUrl && !formData.image.trim()) {
-      newErrors.image = 'Image URL is required when not using PDF upload';
+    // Additional validation for specific modes
+    if (uploadMode === 'pdf' && !processedPDFData) {
+      newErrors.pdf = 'Please upload and process a PDF file';
+    }
+
+    if (uploadMode === 'image' && !processedImageData) {
+      newErrors.image = 'Please upload an image file';
+    }
+
+    if (uploadMode === 'url' && !formData.image.trim()) {
+      newErrors.image = 'Image URL is required';
     }
 
     // When using PDF mode, require processed PDF data and generated image
-    if (!useImageUrl && processedPDFData && !formData.image.trim()) {
+    if (uploadMode === 'pdf' && processedPDFData && !formData.image.trim()) {
       newErrors.image = 'PDF processing must generate a preview image';
     }
 
@@ -243,8 +287,8 @@ const ProductModal = ({
       submit: null 
     }));
     
-    // Auto-populate image URL from processed PDF if not using manual image URL
-    if (processedData.previewUrls?.medium && !useImageUrl) {
+    // Auto-populate image URL from processed PDF if in PDF mode
+    if (processedData.previewUrls?.medium && uploadMode === 'pdf') {
       // Get Supabase URL with fallback for development
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 
                          (typeof window !== 'undefined' && window.location.origin.includes('localhost') 
@@ -303,27 +347,108 @@ const ProductModal = ({
     setPdfError(null);
     
     // Clear auto-generated image URL
-    if (!useImageUrl && formData.image?.includes('supabase')) {
+    if (uploadMode === 'pdf' && formData.image?.includes('supabase')) {
       setFormData(prev => ({ ...prev, image: '' }));
     }
   };
 
-  const handleUploadModeToggle = (usePdfMode) => {
-    setUseImageUrl(!usePdfMode);
+  // Image upload handlers
+  const handleImageUploadComplete = (imageFile) => {
+    console.log('[PRODUCT-MODAL] ======= IMAGE UPLOAD COMPLETED =======')
+    console.log('[PRODUCT-MODAL] Image file received:', {
+      id: imageFile.id,
+      fileName: imageFile.fileName,
+      fileSize: imageFile.fileSize,
+      dimensions: imageFile.dimensions,
+      processingStatus: imageFile.processingStatus
+    })
+    console.log('[PRODUCT-MODAL] Complete imageFile object:', imageFile)
     
-    if (usePdfMode) {
-      // Switching to PDF mode - clear manual image URL
-      setFormData(prev => ({ ...prev, image: '' }));
-    } else {
-      // Switching to image URL mode - clear PDF data
-      clearPDFUpload();
+    setUploadedImage(imageFile);
+    setProcessedImageData(imageFile); // For images, upload and processing are the same step
+    setImageProcessingStatus('completed');
+    setImageError(null);
+    
+    // Clear any previous errors
+    setErrors(prev => ({ 
+      ...prev, 
+      image: null,
+      submit: null 
+    }));
+    
+    // Auto-populate form fields from image metadata if available and fields are empty
+    const updates = {};
+    
+    if (!formData.title.trim()) {
+      // Generate a title from filename
+      const baseName = imageFile.fileName?.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '') || 'Digital Artwork';
+      updates.title = baseName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
     
-    // Clear related errors
+    // Generate description from image metadata
+    if (!formData.description.trim()) {
+      const descriptionParts = [];
+      
+      if (imageFile.dimensions) {
+        descriptionParts.push(`High-quality digital image (${imageFile.dimensions.width} × ${imageFile.dimensions.height} pixels)`);
+      } else {
+        descriptionParts.push('High-quality digital image perfect for printing and digital use');
+      }
+      
+      if (imageFile.colorProfile) {
+        descriptionParts.push(`Color profile: ${imageFile.colorProfile}`);
+      }
+      
+      if (descriptionParts.length > 0) {
+        updates.description = descriptionParts.join('. ') + '.';
+      }
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      console.log('[PRODUCT-MODAL] Auto-populating fields from image metadata:', updates);
+      setFormData(prev => ({ ...prev, ...updates }));
+    }
+  };
+
+  const handleImageUploadError = (error) => {
+    console.error('[PRODUCT-MODAL] Image Upload Error:', error);
+    setImageError(error.toString());
+    setUploadedImage(null);
+    setProcessedImageData(null);
+    setImageProcessingStatus('failed');
+  };
+
+  const clearImageUpload = () => {
+    setUploadedImage(null);
+    setProcessedImageData(null);
+    setImageProcessingStatus('idle');
+    setImageError(null);
+  };
+
+  const handleUploadModeToggle = (mode) => {
+    setUploadMode(mode);
+    
+    // Clear data from other modes
+    if (mode === 'pdf') {
+      // Clear image uploads and URLs
+      clearImageUpload();
+      setFormData(prev => ({ ...prev, image: '' }));
+    } else if (mode === 'image') {
+      // Clear PDF uploads and URLs
+      clearPDFUpload();
+      setFormData(prev => ({ ...prev, image: '' }));
+    } else if (mode === 'url') {
+      // Clear both uploads
+      clearPDFUpload();
+      clearImageUpload();
+    }
+    
+    // Clear any upload-related errors
     setErrors(prev => ({ 
       ...prev, 
       pdf: null, 
-      image: null 
+      image: null,
+      submit: null 
     }));
   };
 
@@ -362,7 +487,43 @@ const ProductModal = ({
         };
       }
 
-      console.log('[PRODUCT-MODAL] Submitting product:', { method, url, hasPDF: !!processedPDFData });
+      // Include Image data if available
+      if (processedImageData) {
+        productData.imageFileId = processedImageData.id;
+        productData.imageData = {
+          fileName: processedImageData.fileName,
+          fileSize: processedImageData.fileSize,
+          dimensions: processedImageData.dimensions,
+          imageVariants: processedImageData.imageVariants,
+          colorProfile: processedImageData.colorProfile,
+          contentType: processedImageData.contentType,
+        };
+      }
+
+      console.log('[PRODUCT-MODAL] ======= FORM SUBMISSION DEBUG =======')
+      console.log('[PRODUCT-MODAL] Form submission started:', { 
+        method, 
+        url, 
+        uploadMode,
+        formData: {
+          title: formData.title,
+          description: formData.description?.substring(0, 50) + '...',
+          price: formData.price,
+          image: formData.image?.substring(0, 100)
+        }
+      })
+      
+      console.log('[PRODUCT-MODAL] File upload states:', {
+        hasPDF: !!processedPDFData,
+        pdfFileId: processedPDFData?.id,
+        pdfFileName: processedPDFData?.fileName,
+        hasImage: !!processedImageData, 
+        imageFileId: processedImageData?.id,
+        imageFileName: processedImageData?.fileName,
+        imageProcessingStatus: processedImageData?.processingStatus
+      })
+      
+      console.log('[PRODUCT-MODAL] Complete productData being sent:', productData)
       
       const response = await fetch(url, {
         method,
@@ -374,7 +535,16 @@ const ProductModal = ({
 
       if (response.ok) {
         const savedProduct = await response.json();
-        console.log('[PRODUCT-MODAL] Product saved successfully:', { id: savedProduct.id, title: savedProduct.title });
+        console.log('[PRODUCT-MODAL] ======= PRODUCT SAVE SUCCESS =======')
+        console.log('[PRODUCT-MODAL] Product saved successfully:', { 
+          id: savedProduct.id, 
+          title: savedProduct.title,
+          hasImageFileId: !!savedProduct.image_file_id,
+          imageFileId: savedProduct.image_file_id,
+          image: savedProduct.image?.substring(0, 100)
+        })
+        
+        console.log('[PRODUCT-MODAL] Complete saved product data:', savedProduct)
         
         // Clear any previous errors
         setErrors({});
@@ -502,15 +672,255 @@ const ProductModal = ({
                 </div>
               )}
 
-              {/* Two-Column Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 p-6 flex-1 min-h-0 overflow-y-auto">
+              {/* Two-Column Layout - PDF First (Product), then Image (Preview) */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 flex-1 min-h-0 overflow-y-auto">
                 
-                {/* Left Column: Product Details Form (60%) */}
+                {/* Left Column: PDF Upload (60%) - Primary Product */}
                 <div className="lg:col-span-3 space-y-6">
-                  {/* Basic Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-primary">Product Details</h3>
-                    
+                  {/* Step 1: Upload Digital Product (PDF) */}
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <div className="inline-flex items-center space-x-3 mb-4">
+                        <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          1
+                        </div>
+                        <h3 className="text-xl font-bold text-primary">Upload Your Digital Artwork</h3>
+                      </div>
+                      <p className="text-gray-600 max-w-md mx-auto">
+                        Upload your PDF file - this is the actual digital product that customers will download.
+                      </p>
+                    </div>
+
+                    {/* PDF Upload - Always Visible */}
+
+                    {/* PDF Upload - Always Visible */}
+                    <div className="space-y-4">
+                      {!uploadedPDF && (
+                        <PDFUploadZone
+                          onUploadComplete={handlePDFUploadComplete}
+                          onUploadError={handlePDFUploadError}
+                          disabled={isSubmitting}
+                        />
+                      )}
+                      
+                      {uploadedPDF && (
+                        <div className="space-y-4">
+                          <PDFPreviewComponent
+                            pdfFile={uploadedPDF}
+                            onProcessingComplete={handlePDFProcessingComplete}
+                            onProcessingError={handlePDFProcessingError}
+                            className="max-h-80"
+                          />
+                          
+                          <button
+                            type="button"
+                            onClick={clearPDFUpload}
+                            disabled={isSubmitting}
+                            className="text-sm text-gray-600 hover:text-error transition-colors"
+                          >
+                            Upload Different PDF
+                          </button>
+                        </div>
+                      )}
+                      
+                      {errors.pdf && (
+                        <p className="text-error text-sm">{errors.pdf}</p>
+                      )}
+
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Image Upload + Product Details (40%) */}
+                <div className="lg:col-span-2 space-y-8">
+                  {/* Step 2: Add Preview Image (Top Half) */}
+                  <div className={`space-y-6 transition-all duration-300 ${
+                    !processedPDFData ? 'opacity-50' : 'opacity-100'
+                  }`}>
+                    {/* Step 2 Header */}
+                    <div className="text-center">
+                      <div className="inline-flex items-center space-x-3 mb-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                          processedPDFData 
+                            ? (processedImageData || formData.image.trim())
+                              ? 'bg-green-500 text-white'
+                              : 'bg-primary text-white'
+                            : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {processedPDFData && (processedImageData || formData.image.trim()) ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : '2'}
+                        </div>
+                        <h3 className="text-xl font-bold text-primary">Add Preview Image</h3>
+                      </div>
+                      {!processedPDFData ? (
+                        <p className="text-gray-500 text-sm">
+                          Upload your PDF first to unlock preview options
+                        </p>
+                      ) : (
+                        <p className="text-gray-600 text-sm">
+                          Add an image that customers will see before purchasing
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Upload Mode Tabs for Image - Only when PDF is ready */}
+                    {processedPDFData && (
+                      <div className="flex justify-center">
+                        <div className="inline-flex items-center bg-gray-100 p-1 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setUploadMode('image')}
+                            disabled={isSubmitting}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                              uploadMode === 'image'
+                                ? 'bg-white text-primary shadow-sm' 
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            📸 Upload Image
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setUploadMode('url')}
+                            disabled={isSubmitting}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                              uploadMode === 'url'
+                                ? 'bg-white text-primary shadow-sm' 
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            🔗 Image URL
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Image Upload Areas - Only when PDF is ready */}
+                    {processedPDFData && (
+                      <div className="space-y-4">
+                        {/* Image Upload Mode */}
+                        {uploadMode === 'image' && (
+                          <div className="space-y-4">
+                            {!uploadedImage && (
+                              <ImageUploadZone
+                                onUploadComplete={handleImageUploadComplete}
+                                onUploadError={handleImageUploadError}
+                                disabled={isSubmitting}
+                                showPreview={true}
+                                maxFileSize={10 * 1024 * 1024} // 10MB
+                              />
+                            )}
+
+                            {uploadedImage && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center space-x-2">
+                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-green-800 font-medium text-sm">Preview image uploaded!</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={clearImageUpload}
+                                    disabled={isSubmitting}
+                                    className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
+                                  >
+                                    Clear
+                                  </button>
+                                </div>
+                                
+                                <div className="space-y-2 text-sm">
+                                  <p><span className="font-medium">File:</span> {uploadedImage.fileName}</p>
+                                  <p><span className="font-medium">Size:</span> {Math.round(uploadedImage.fileSize / 1024)} KB</p>
+                                  {uploadedImage.dimensions && (
+                                    <p><span className="font-medium">Dimensions:</span> {uploadedImage.dimensions.width} × {uploadedImage.dimensions.height} pixels</p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Image URL Mode */}
+                        {uploadMode === 'url' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+                                Preview Image URL
+                              </label>
+                              <input
+                                type="url"
+                                id="image"
+                                name="image"
+                                value={formData.image}
+                                onChange={handleInputChange}
+                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
+                                  errors.image ? 'border-error' : 'border-gray-300'
+                                }`}
+                                placeholder="https://example.com/preview-image.jpg"
+                                disabled={isSubmitting}
+                              />
+                              {errors.image && (
+                                <p className="text-error text-sm mt-1">{errors.image}</p>
+                              )}
+                              {formData.image && (
+                                <div className="mt-3">
+                                  <img
+                                    src={formData.image}
+                                    alt="Preview"
+                                    className="w-full max-w-xs h-auto rounded-lg border border-gray-200 mx-auto"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Step 3: Product Details (Bottom Half) */}
+                  <div className={`space-y-6 transition-all duration-300 ${
+                    (!processedPDFData || (!processedImageData && !formData.image.trim())) ? 'opacity-50' : 'opacity-100'
+                  }`}>
+                    {/* Step 3 Header */}
+                    <div className="text-center">
+                      <div className="inline-flex items-center space-x-3 mb-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                          (processedPDFData && (processedImageData || formData.image.trim()))
+                            ? (formData.title && formData.description && formData.price)
+                              ? 'bg-green-500 text-white'
+                              : 'bg-primary text-white'
+                            : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {(processedPDFData && (processedImageData || formData.image.trim()) && formData.title && formData.description && formData.price) ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : '3'}
+                        </div>
+                        <h3 className="text-lg font-semibold text-primary">Product Details</h3>
+                      </div>
+                      {(!processedPDFData || (!processedImageData && !formData.image.trim())) ? (
+                        <p className="text-gray-500 text-sm">
+                          Complete steps 1 & 2 to add product details
+                        </p>
+                      ) : (
+                        <p className="text-gray-600 text-sm">
+                          Complete your product information
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Product Details Form */}
+                    <div className="space-y-4">
                     {/* Title */}
                     <div>
                       <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -527,7 +937,7 @@ const ProductModal = ({
                           errors.title ? 'border-error' : 'border-gray-300'
                         }`}
                         placeholder="Enter a descriptive title for your artwork"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || (!processedPDFData || (!processedImageData && !formData.image.trim()))}
                       />
                       {errors.title && (
                         <p className="text-error text-sm mt-1">{errors.title}</p>
@@ -549,7 +959,7 @@ const ProductModal = ({
                           errors.description ? 'border-error' : 'border-gray-300'
                         }`}
                         placeholder="Describe your artwork, its style, dimensions, and what makes it special..."
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || (!processedPDFData || (!processedImageData && !formData.image.trim()))}
                       />
                       {errors.description && (
                         <p className="text-error text-sm mt-1">{errors.description}</p>
@@ -577,157 +987,38 @@ const ProductModal = ({
                             errors.price ? 'border-error' : 'border-gray-300'
                           }`}
                           placeholder="0.00"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || (!processedPDFData || (!processedImageData && !formData.image.trim()))}
                         />
                       </div>
                       {errors.price && (
                         <p className="text-error text-sm mt-1">{errors.price}</p>
                       )}
                     </div>
+                    </div>
                   </div>
 
-                  {/* Image URL Mode (only show in left column when using image URL) */}
-                  {useImageUrl && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-primary">Product Image</h3>
-                      <div>
-                        <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                          Image URL *
-                        </label>
-                        <input
-                          type="url"
-                          id="image"
-                          name="image"
-                          value={formData.image}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
-                            errors.image ? 'border-error' : 'border-gray-300'
-                          }`}
-                          placeholder="https://example.com/image.jpg"
-                          disabled={isSubmitting}
-                        />
-                        {errors.image && (
-                          <p className="text-error text-sm mt-1">{errors.image}</p>
-                        )}
-                        {formData.image && (
-                          <div className="mt-3">
-                            <img
-                              src={formData.image}
-                              alt="Preview"
-                              className="w-full max-w-xs h-auto rounded-lg border border-gray-200"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        )}
+                  {/* Processing Status */}
+                  {pdfError && (
+                    <div className="bg-error/10 border border-error/20 rounded-lg p-4">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <p className="text-error font-medium text-sm">PDF Error: {pdfError}</p>
                       </div>
                     </div>
                   )}
-                </div>
 
-                {/* Right Column: Upload Section (40%) */}
-                <div className="lg:col-span-2 space-y-6 flex flex-col min-h-0">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-primary">Upload</h3>
-                      
-                      {/* Upload Mode Toggle */}
+                  {imageError && (
+                    <div className="bg-error/10 border border-error/20 rounded-lg p-4">
                       <div className="flex items-center space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => handleUploadModeToggle(true)}
-                          disabled={isSubmitting}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                            !useImageUrl 
-                              ? 'bg-primary text-white' 
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          PDF
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUploadModeToggle(false)}
-                          disabled={isSubmitting}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                            useImageUrl 
-                              ? 'bg-primary text-white' 
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          URL
-                        </button>
+                        <svg className="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <p className="text-error font-medium text-sm">Image Error: {imageError}</p>
                       </div>
                     </div>
-
-                    {/* PDF Upload Mode */}
-                    {!useImageUrl && (
-                      <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
-                        {!uploadedPDF && (
-                          <PDFUploadZone
-                            onUploadComplete={handlePDFUploadComplete}
-                            onUploadError={handlePDFUploadError}
-                            disabled={isSubmitting}
-                          />
-                        )}
-                        
-                        {uploadedPDF && (
-                          <div className="space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
-                            <PDFPreviewComponent
-                              pdfFile={uploadedPDF}
-                              onProcessingComplete={handlePDFProcessingComplete}
-                              onProcessingError={handlePDFProcessingError}
-                              className="max-h-80"
-                            />
-                            
-                            {/* Clear PDF button */}
-                            <button
-                              type="button"
-                              onClick={clearPDFUpload}
-                              disabled={isSubmitting}
-                              className="text-sm text-gray-600 hover:text-error transition-colors"
-                            >
-                              Upload Different PDF
-                            </button>
-                          </div>
-                        )}
-                        
-                        {errors.pdf && (
-                          <p className="text-error text-sm">{errors.pdf}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* URL Mode Hint */}
-                    {useImageUrl && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-start space-x-2">
-                          <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div>
-                            <p className="text-blue-700 text-sm font-medium">Using Image URL Mode</p>
-                            <p className="text-blue-600 text-xs mt-1">
-                              Enter the image URL in the Product Details section on the left.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Processing Status */}
-                    {pdfError && (
-                      <div className="bg-error/10 border border-error/20 rounded-lg p-4">
-                        <div className="flex items-center space-x-2">
-                          <svg className="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                          </svg>
-                          <p className="text-error font-medium text-sm">PDF Error: {pdfError}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
               </div>
@@ -735,10 +1026,129 @@ const ProductModal = ({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-            <div className="text-sm text-gray-600">
-              {mode === 'edit' ? 'Update your product information' : 'All fields marked with * are required'}
+          <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
+            {/* Progress Steps - PDF First Flow */}
+            <div className="flex items-center justify-center space-x-6 mb-6">
+              {/* Step 1: PDF Upload */}
+              <div className="flex items-center space-x-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                  processedPDFData 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-primary text-white'
+                }`}>
+                  {processedPDFData ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : '1'}
+                </div>
+                <span className={`text-sm font-medium ${
+                  processedPDFData ? 'text-green-600' : 'text-primary'
+                }`}>
+                  Upload PDF
+                </span>
+              </div>
+
+              {/* Connector 1 */}
+              <div className={`w-10 h-0.5 transition-colors ${
+                processedPDFData ? 'bg-green-300' : 'bg-gray-300'
+              }`}></div>
+
+              {/* Step 2: Add Preview Image */}
+              <div className="flex items-center space-x-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                  processedPDFData 
+                    ? (processedImageData || formData.image.trim())
+                      ? 'bg-green-500 text-white'
+                      : 'bg-primary text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}>
+                  {processedPDFData && (processedImageData || formData.image.trim()) ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : '2'}
+                </div>
+                <span className={`text-sm font-medium ${
+                  processedPDFData 
+                    ? (processedImageData || formData.image.trim())
+                      ? 'text-green-600'
+                      : 'text-primary'
+                    : 'text-gray-500'
+                }`}>
+                  Add Image
+                </span>
+              </div>
+
+              {/* Connector 2 */}
+              <div className={`w-10 h-0.5 transition-colors ${
+                processedPDFData && (processedImageData || formData.image.trim()) ? 'bg-green-300' : 'bg-gray-300'
+              }`}></div>
+
+              {/* Step 3: Complete Details */}
+              <div className="flex items-center space-x-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                  processedPDFData && (processedImageData || formData.image.trim())
+                    ? (formData.title && formData.description && formData.price)
+                      ? 'bg-green-500 text-white'
+                      : 'bg-primary text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}>
+                  {processedPDFData && (processedImageData || formData.image.trim()) && (formData.title && formData.description && formData.price) ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : '3'}
+                </div>
+                <span className={`text-sm font-medium ${
+                  processedPDFData && (processedImageData || formData.image.trim())
+                    ? (formData.title && formData.description && formData.price)
+                      ? 'text-green-600'
+                      : 'text-primary'
+                    : 'text-gray-500'
+                }`}>
+                  Add Details
+                </span>
+              </div>
+
+              {/* Connector 3 */}
+              <div className={`w-10 h-0.5 transition-colors ${
+                processedPDFData && (processedImageData || formData.image.trim()) && (formData.title && formData.description && formData.price)
+                  ? 'bg-green-300' : 'bg-gray-300'
+              }`}></div>
+
+              {/* Step 4: Publish */}
+              <div className="flex items-center space-x-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                  processedPDFData && (processedImageData || formData.image.trim()) && (formData.title && formData.description && formData.price)
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}>
+                  4
+                </div>
+                <span className={`text-sm font-medium ${
+                  processedPDFData && (processedImageData || formData.image.trim()) && (formData.title && formData.description && formData.price)
+                    ? 'text-primary'
+                    : 'text-gray-500'
+                }`}>
+                  Publish
+                </span>
+              </div>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {!processedPDFData ? (
+                  <span>Step 1: Upload your PDF file to get started</span>
+                ) : (!processedImageData && !formData.image.trim()) ? (
+                  <span>Step 2: Add a preview image for customers</span>
+                ) : !(formData.title && formData.description && formData.price) ? (
+                  <span>Step 3: Complete product details to continue</span>
+                ) : (
+                  <span>Ready to publish your product!</span>
+                )}
+              </div>
             
             <div className="flex items-center space-x-3">
               <button
@@ -752,18 +1162,60 @@ const ProductModal = ({
               
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || (!useImageUrl && pdfProcessingStatus === 'processing')}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center space-x-2 shadow-sm hover:shadow-md min-h-[44px]"
+                disabled={
+                  isSubmitting || 
+                  pdfProcessingStatus === 'processing' || 
+                  imageProcessingStatus === 'processing' ||
+                  !processedPDFData || // Cannot submit without PDF
+                  (!processedImageData && !formData.image.trim()) || // Cannot submit without image
+                  !(formData.title && formData.description && formData.price) // Cannot submit without complete details
+                }
+                className={`px-6 py-3 font-medium rounded-lg transition-all duration-200 disabled:opacity-50 flex items-center space-x-2 shadow-sm hover:shadow-md min-h-[44px] text-white ${
+                  !processedPDFData 
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : (!processedImageData && !formData.image.trim()) 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : !(formData.title && formData.description && formData.price)
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-primary hover:from-blue-700 hover:to-primary-dark transform hover:scale-105'
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Saving...</span>
+                    <span>Publishing...</span>
+                  </>
+                ) : !processedPDFData ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21H17l-10-9h20v6M7 3v6l10 9H7V3z" />
+                    </svg>
+                    <span>Upload PDF to Continue</span>
+                  </>
+                ) : (!processedImageData && !formData.image.trim()) ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Add Image to Continue</span>
+                  </>
+                ) : !(formData.title && formData.description && formData.price) ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span>Complete Details</span>
                   </>
                 ) : (
-                  <span>{mode === 'edit' ? 'Update Product' : 'Add Product'}</span>
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{mode === 'edit' ? 'Update Product' : 'Publish Product'}</span>
+                  </>
                 )}
               </button>
+            </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useState } from 'react'
 
 const CartContext = createContext()
 
@@ -16,11 +16,9 @@ const cartReducer = (state, action) => {
       const existingItem = state.find(item => item.id === action.payload.id)
       
       if (existingItem) {
-        return state.map(item =>
-          item.id === action.payload.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
+        // For digital products, don't increment quantity - just return existing state
+        // The UI will handle showing feedback that item is already in cart
+        return state
       }
       
       return [...state, { ...action.payload, quantity: 1 }]
@@ -54,26 +52,42 @@ const cartReducer = (state, action) => {
 
 export function CartProvider({ children }) {
   const [cart, dispatch] = useReducer(cartReducer, [])
+  const [isCartLoaded, setIsCartLoaded] = useState(false)
 
+  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('mjkprints-cart')
+    console.log('🛒 Loading cart from localStorage:', savedCart ? 'Found saved cart' : 'No saved cart')
+    
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart)
+        console.log('🛒 Parsed saved cart:', parsedCart.length, 'items')
         dispatch({ type: CART_ACTIONS.LOAD_CART, payload: parsedCart })
       } catch (error) {
-        console.error('Error loading cart from localStorage:', error)
+        console.error('❌ Error loading cart from localStorage:', error)
         localStorage.removeItem('mjkprints-cart')
       }
     }
+    
+    // Mark cart as loaded (allows saving to localStorage)
+    setIsCartLoaded(true)
   }, [])
 
+  // Save cart to localStorage only after initial load
   useEffect(() => {
-    localStorage.setItem('mjkprints-cart', JSON.stringify(cart))
-  }, [cart])
+    if (isCartLoaded) {
+      console.log('💾 Saving cart to localStorage:', cart.length, 'items')
+      localStorage.setItem('mjkprints-cart', JSON.stringify(cart))
+    }
+  }, [cart, isCartLoaded])
 
   const addToCart = (product) => {
+    const existingItem = cart.find(item => item.id === product.id)
     dispatch({ type: CART_ACTIONS.ADD_ITEM, payload: product })
+    
+    // Return whether item was newly added or already existed
+    return !existingItem
   }
 
   const removeFromCart = (productId) => {

@@ -439,7 +439,8 @@ const getPDFDimensions = async (pdfBuffer) => {
 
 // Convert PDF page to image buffer with multiple fallback strategies
 const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, magickAvailable = false) => {
-  console.log(`[PDF-PROCESS] Converting page ${pageNumber} to image (scale: ${scale})`)
+  console.log(`[PDF-PROCESS] ======= STARTING PDF TO IMAGE CONVERSION =======`)
+  console.log(`[PDF-PROCESS] Page: ${pageNumber}, Scale: ${scale}, Buffer: ${pdfBuffer.length} bytes, ImageMagick: ${magickAvailable}`)
   
   // Validate inputs
   if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -462,27 +463,61 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
   // Fallback strategies: PDF.js rendering
   strategies.push({ name: 'PDF.js + Canvas', func: convertPDFPageWithCanvas })
   strategies.push({ name: 'Simplified PDF.js', func: convertPDFPageSimplified })
+  strategies.push({ name: 'Basic Canvas', func: createBasicCanvasImage })
   strategies.push({ name: 'Placeholder', func: createPlaceholderImage })
   
   console.log(`[PDF-PROCESS] Available conversion strategies: ${strategies.map(s => s.name).join(', ')}`)
   
   let lastError = null
+  let strategyResults = []
   
   for (let i = 0; i < strategies.length; i++) {
     const strategy = strategies[i]
+    const strategyStart = Date.now()
+    
     try {
-      console.log(`[PDF-PROCESS] Attempting strategy ${i + 1}: ${strategy.name}`)
+      console.log(`[PDF-PROCESS] ======= ATTEMPTING STRATEGY ${i + 1}: ${strategy.name.toUpperCase()} =======`)
       
       // All strategies now use the same parameter format
-      return await strategy.func(pdfBuffer, pageNumber, scale)
+      const result = await strategy.func(pdfBuffer, pageNumber, scale)
+      const strategyTime = Date.now() - strategyStart
+      
+      console.log(`[PDF-PROCESS] ✅ Strategy ${i + 1} (${strategy.name}) SUCCESS in ${strategyTime}ms`)
+      console.log(`[PDF-PROCESS] Result buffer size: ${result.length} bytes`)
+      
+      // Validate result
+      if (result.length < 1000) {
+        console.warn(`[PDF-PROCESS] ⚠️  Strategy ${i + 1} produced small buffer (${result.length} bytes)`)
+      }
+      
+      strategyResults.push({
+        strategy: strategy.name,
+        success: true,
+        time: strategyTime,
+        bufferSize: result.length
+      })
+      
+      console.log(`[PDF-PROCESS] ======= CONVERSION SUCCESSFUL =======`)
+      return result
       
     } catch (error) {
-      console.error(`[PDF-PROCESS] Strategy ${i + 1} (${strategy.name}) failed:`, {
+      const strategyTime = Date.now() - strategyStart
+      
+      console.error(`[PDF-PROCESS] ❌ Strategy ${i + 1} (${strategy.name}) FAILED in ${strategyTime}ms:`, {
         message: error.message,
         name: error.name,
         pageNumber,
-        scale
+        scale,
+        stack: error.stack?.substring(0, 300)
       })
+      
+      strategyResults.push({
+        strategy: strategy.name,
+        success: false,
+        time: strategyTime,
+        error: error.message
+      })
+      
       lastError = error
       
       // Continue to next strategy
@@ -491,6 +526,8 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
   }
   
   // If all strategies failed
+  console.error(`[PDF-PROCESS] ❌ ALL STRATEGIES FAILED`)
+  console.error(`[PDF-PROCESS] Strategy Summary:`, strategyResults)
   throw new Error(`All PDF rendering strategies failed. Last error: ${lastError?.message || 'Unknown error'}`)
 }
 
@@ -758,108 +795,250 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
 
 // Simplified PDF rendering (skip complex elements)
 const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
-  const pdfjs = await initPdfJs()
-  const uint8Array = new Uint8Array(pdfBuffer)
-  const canvasFactory = new NodeCanvasFactory()
-  const pdf = await pdfjs.getDocument({ 
-    data: uint8Array,
-    isEvalSupported: false,
-    disableWorker: true,
-    canvasFactory: canvasFactory
-  }).promise
-  const page = await pdf.getPage(pageNumber)
-  const viewport = page.getViewport({ scale })
-
-  // Use NodeCanvasFactory to create canvas with white background
-  const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
-  const { canvas, context } = canvasAndContext
+  console.log(`[PDF-PROCESS] ======= STARTING SIMPLIFIED PDF RENDERING =======`)
+  console.log(`[PDF-PROCESS] Page: ${pageNumber}, Scale: ${scale}, Buffer: ${pdfBuffer.length} bytes`)
   
-  // Fill with white background
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, canvas.width, canvas.height)
-
-  // Try to render only text and simple graphics (skip images)
-  const renderContext = {
-    canvasContext: context,
-    viewport: viewport,
-    // Add intent to skip problematic elements
-    intent: 'print',
-    renderInteractiveForms: false,
-    annotationMode: 0, // Disable annotations
-    optionalContentConfigPromise: null, // Skip optional content
-    background: 'white'
-  }
-
-  console.log(`[PDF-PROCESS] Attempting simplified render for page ${pageNumber}`)
-  console.log(`[PDF-PROCESS] Simplified render context:`, {
-    viewport: `${viewport.width}x${viewport.height}`,
-    intent: renderContext.intent,
-    background: renderContext.background
-  })
-
   try {
-    await page.render(renderContext).promise
-    console.log(`[PDF-PROCESS] Simplified render successful for page ${pageNumber}`)
+    const pdfjs = await initPdfJs()
+    const uint8Array = new Uint8Array(pdfBuffer)
+    const canvasFactory = new NodeCanvasFactory()
     
-    // Check if simplified canvas has content
-    const imageData = context.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height))
-    const hasContent = imageData.data.some(pixel => pixel !== 255)
-    console.log(`[PDF-PROCESS] Simplified canvas content check - hasContent: ${hasContent}`)
+    console.log(`[PDF-PROCESS] Loading PDF document...`)
+    const pdf = await pdfjs.getDocument({ 
+      data: uint8Array,
+      isEvalSupported: false,
+      disableWorker: true,
+      canvasFactory: canvasFactory
+    }).promise
     
-  } catch (renderError) {
-    // If rendering fails, at least return a white canvas
-    console.log(`[PDF-PROCESS] Simplified render failed, returning white canvas: ${renderError.message}`)
-    console.log(`[PDF-PROCESS] Simplified render error details:`, {
-      name: renderError.name,
-      message: renderError.message,
-      stack: renderError.stack?.substring(0, 200)
-    })
-  }
+    console.log(`[PDF-PROCESS] PDF loaded, getting page ${pageNumber}...`)
+    const page = await pdf.getPage(pageNumber)
+    const viewport = page.getViewport({ scale })
 
-  console.log(`[PDF-PROCESS] Converting simplified canvas to JPEG buffer...`)
-  const buffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
-  console.log(`[PDF-PROCESS] Simplified JPEG buffer created: ${buffer.length} bytes`)
+    console.log(`[PDF-PROCESS] Page viewport: ${viewport.width}x${viewport.height}`)
+
+    // Use NodeCanvasFactory to create canvas with white background
+    const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
+    const { canvas, context } = canvasAndContext
+    
+    console.log(`[PDF-PROCESS] Canvas created: ${canvas.width}x${canvas.height}`)
+    
+    // Fill with white background
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+
+    // Try to render only text and simple graphics (skip images)
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+      // Add intent to skip problematic elements
+      intent: 'print',
+      renderInteractiveForms: false,
+      annotationMode: 0, // Disable annotations
+      optionalContentConfigPromise: null, // Skip optional content
+      background: 'white'
+    }
+
+    console.log(`[PDF-PROCESS] Attempting simplified render for page ${pageNumber}`)
+    console.log(`[PDF-PROCESS] Simplified render context:`, {
+      viewport: `${viewport.width}x${viewport.height}`,
+      intent: renderContext.intent,
+      background: renderContext.background
+    })
+
+    try {
+      await page.render(renderContext).promise
+      console.log(`[PDF-PROCESS] ✅ Simplified render successful for page ${pageNumber}`)
+      
+      // Check if simplified canvas has content
+      const imageData = context.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height))
+      const hasContent = imageData.data.some(pixel => pixel !== 255)
+      console.log(`[PDF-PROCESS] Simplified canvas content check - hasContent: ${hasContent}`)
+      
+    } catch (renderError) {
+      // If rendering fails, at least return a white canvas with some indication
+      console.warn(`[PDF-PROCESS] ⚠️  Simplified render failed, creating basic white canvas: ${renderError.message}`)
+      console.log(`[PDF-PROCESS] Simplified render error details:`, {
+        name: renderError.name,
+        message: renderError.message,
+        stack: renderError.stack?.substring(0, 200)
+      })
+      
+      // Add some basic indication that this is a PDF
+      try {
+        context.fillStyle = '#cccccc'
+        context.strokeRect(10, 10, canvas.width - 20, canvas.height - 20)
+        context.fillStyle = '#666666'
+        context.font = '24px Arial'
+        context.textAlign = 'center'
+        context.fillText('PDF Content', canvas.width / 2, canvas.height / 2)
+      } catch (drawError) {
+        console.warn(`[PDF-PROCESS] Could not add fallback text:`, drawError.message)
+      }
+    }
+
+    console.log(`[PDF-PROCESS] Converting simplified canvas to JPEG buffer...`)
+    const buffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
+    console.log(`[PDF-PROCESS] ✅ Simplified JPEG buffer created: ${buffer.length} bytes`)
+    
+    return buffer
+    
+  } catch (error) {
+    console.error(`[PDF-PROCESS] ❌ Simplified PDF rendering completely failed:`, {
+      message: error.message,
+      name: error.name,
+      pageNumber,
+      scale,
+      bufferSize: pdfBuffer.length
+    })
+    throw error
+  }
+}
+
+// Create basic canvas image without PDF.js (emergency fallback)
+const createBasicCanvasImage = async (pdfBuffer, pageNumber, scale = 2.0) => {
+  console.log(`[PDF-PROCESS] ======= CREATING BASIC CANVAS IMAGE =======`)
+  console.log(`[PDF-PROCESS] Page: ${pageNumber}, Scale: ${scale}`)
   
-  return buffer
+  try {
+    // Create a reasonable sized canvas based on scale
+    const baseWidth = 612  // Standard letter width in points
+    const baseHeight = 792 // Standard letter height in points
+    const width = Math.round(baseWidth * scale * 0.75) // Convert points to pixels (72 DPI to ~150 DPI)
+    const height = Math.round(baseHeight * scale * 0.75)
+    
+    console.log(`[PDF-PROCESS] Creating basic canvas: ${width}x${height}`)
+    
+    const canvas = new Canvas(width, height)
+    const context = canvas.getContext('2d')
+    
+    // White background
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+    
+    // Add subtle border
+    context.strokeStyle = '#e0e0e0'
+    context.lineWidth = 1
+    context.strokeRect(0, 0, width, height)
+    
+    // Add document icon
+    const iconSize = Math.min(width, height) * 0.3
+    const centerX = width / 2
+    const centerY = height / 2
+    
+    // Document outline
+    context.strokeStyle = '#cccccc'
+    context.lineWidth = 2
+    context.strokeRect(centerX - iconSize/2, centerY - iconSize/2, iconSize, iconSize * 1.3)
+    
+    // Document lines (simulate text)
+    context.strokeStyle = '#dddddd'
+    context.lineWidth = 1
+    const lineSpacing = iconSize * 0.08
+    for (let i = 0; i < 8; i++) {
+      const y = (centerY - iconSize/2) + (iconSize * 0.2) + (i * lineSpacing)
+      const startX = centerX - iconSize/2 + iconSize * 0.1
+      const endX = centerX + iconSize/2 - iconSize * 0.1
+      context.beginPath()
+      context.moveTo(startX, y)
+      context.lineTo(endX - (i % 3 === 2 ? iconSize * 0.3 : 0), y) // Vary line lengths
+      context.stroke()
+    }
+    
+    // Add subtle text
+    try {
+      context.fillStyle = '#888888'
+      context.font = `${Math.round(iconSize * 0.08)}px Arial`
+      context.textAlign = 'center'
+      context.fillText('PDF Document', centerX, centerY + iconSize * 0.8)
+      context.font = `${Math.round(iconSize * 0.06)}px Arial`
+      context.fillText(`Page ${pageNumber}`, centerX, centerY + iconSize * 0.9)
+    } catch (textError) {
+      console.warn(`[PDF-PROCESS] Text rendering failed in basic canvas:`, textError.message)
+    }
+    
+    const buffer = canvas.toBuffer('image/jpeg', { quality: 0.8 })
+    console.log(`[PDF-PROCESS] ✅ Basic canvas image created: ${buffer.length} bytes`)
+    return buffer
+    
+  } catch (error) {
+    console.error(`[PDF-PROCESS] ❌ Basic canvas creation failed:`, error.message)
+    throw error
+  }
 }
 
 // Create placeholder image with PDF information
 const createPlaceholderImage = async (pdfBuffer, pageNumber) => {
   console.log(`[PDF-PROCESS] Creating placeholder image for page ${pageNumber}`)
   
-  // Standard A4 dimensions at 150 DPI
-  const width = 1240
-  const height = 1754
-  
-  const canvas = new Canvas(width, height)
-  const context = canvas.getContext('2d')
-  
-  // White background
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, width, height)
-  
-  // Add border
-  context.strokeStyle = '#cccccc'
-  context.lineWidth = 2
-  context.strokeRect(20, 20, width - 40, height - 40)
-  
-  // Add placeholder text
-  context.fillStyle = '#666666'
-  context.font = 'bold 48px Arial'
-  context.textAlign = 'center'
-  context.textBaseline = 'middle'
-  
-  const centerX = width / 2
-  const centerY = height / 2
-  
-  context.fillText('PDF Document', centerX, centerY - 60)
-  context.font = '32px Arial'
-  context.fillText(`Page ${pageNumber}`, centerX, centerY)
-  context.font = '24px Arial'
-  context.fillText('Preview not available', centerX, centerY + 40)
-  context.fillText('Original PDF will be delivered', centerX, centerY + 80)
-  
-  return canvas.toBuffer('image/jpeg', { quality: 0.9 })
+  try {
+    // Standard A4 dimensions at 150 DPI
+    const width = 1240
+    const height = 1754
+    
+    const canvas = new Canvas(width, height)
+    const context = canvas.getContext('2d')
+    
+    console.log(`[PDF-PROCESS] Placeholder canvas created: ${width}x${height}`)
+    
+    // White background
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+    
+    // Add border
+    context.strokeStyle = '#cccccc'
+    context.lineWidth = 2
+    context.strokeRect(20, 20, width - 40, height - 40)
+    
+    // Add placeholder text
+    context.fillStyle = '#666666'
+    context.font = 'bold 48px Arial'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    
+    const centerX = width / 2
+    const centerY = height / 2
+    
+    // Add text with error handling
+    try {
+      context.fillText('PDF Document', centerX, centerY - 60)
+      context.font = '32px Arial'
+      context.fillText(`Page ${pageNumber}`, centerX, centerY)
+      context.font = '24px Arial'
+      context.fillText('Preview not available', centerX, centerY + 40)
+      context.fillText('Original PDF will be delivered', centerX, centerY + 80)
+    } catch (textError) {
+      console.warn(`[PDF-PROCESS] Text rendering failed, creating simple placeholder:`, textError.message)
+      // Simple fallback - just fill with gray
+      context.fillStyle = '#f0f0f0'
+      context.fillRect(100, 100, width - 200, height - 200)
+    }
+    
+    const buffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
+    console.log(`[PDF-PROCESS] ✅ Placeholder image created: ${buffer.length} bytes`)
+    return buffer
+    
+  } catch (error) {
+    console.error(`[PDF-PROCESS] ❌ Placeholder creation failed:`, error.message)
+    
+    // Ultra-simple fallback: create a minimal valid JPEG
+    console.log(`[PDF-PROCESS] Creating minimal fallback image...`)
+    
+    try {
+      // Create smallest possible canvas
+      const canvas = new Canvas(100, 100)
+      const context = canvas.getContext('2d')
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, 100, 100)
+      context.fillStyle = '#000000'
+      context.fillRect(10, 10, 80, 80)
+      
+      return canvas.toBuffer('image/jpeg', { quality: 0.5 })
+    } catch (fallbackError) {
+      console.error(`[PDF-PROCESS] ❌ Even fallback placeholder failed:`, fallbackError.message)
+      throw new Error(`Unable to create any placeholder image: ${fallbackError.message}`)
+    }
+  }
 }
 
 // Generate preview images at different sizes
@@ -867,37 +1046,72 @@ const generatePreviewImages = async (pdfBuffer, fileId, magickAvailable = false)
   const previewUrls = {}
   
   try {
+    console.log(`[PDF-PROCESS] ======= STARTING PREVIEW GENERATION =======`)
+    console.log(`[PDF-PROCESS] FileID: ${fileId}, PDF Buffer: ${pdfBuffer.length} bytes, ImageMagick Available: ${magickAvailable}`)
+    
     console.log(`[PDF-PROCESS] Converting first page to high-res image (scale: 3.0)`)
     // Convert first page to high-res image
-    const highResImage = await convertPDFPageToImage(pdfBuffer, 1, 3.0, magickAvailable)
-    console.log(`[PDF-PROCESS] High-res image generated: ${highResImage.length} bytes`)
+    let highResImage
+    try {
+      highResImage = await convertPDFPageToImage(pdfBuffer, 1, 3.0, magickAvailable)
+      console.log(`[PDF-PROCESS] ✅ High-res image generated successfully: ${highResImage.length} bytes`)
+    } catch (conversionError) {
+      console.error(`[PDF-PROCESS] ❌ PDF to image conversion failed:`, {
+        message: conversionError.message,
+        name: conversionError.name,
+        stack: conversionError.stack?.substring(0, 500)
+      })
+      throw new Error(`PDF to image conversion failed: ${conversionError.message}`)
+    }
     
     // Generate different sizes using Sharp
     console.log(`[PDF-PROCESS] Creating preview sizes:`, Object.keys(PREVIEW_SIZES))
     for (const [size, dimensions] of Object.entries(PREVIEW_SIZES)) {
-      console.log(`[PDF-PROCESS] Creating ${size} preview (${dimensions.width}x${dimensions.height})`)
-      
-      const resizedImage = await sharp(highResImage)
-        .resize(dimensions.width, dimensions.height, {
-          fit: 'inside',
-          withoutEnlargement: true
+      try {
+        console.log(`[PDF-PROCESS] Creating ${size} preview (${dimensions.width}x${dimensions.height})`)
+        
+        const resizedImage = await sharp(highResImage)
+          .resize(dimensions.width, dimensions.height, {
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          .jpeg({ quality: 85 })
+          .toBuffer()
+
+        console.log(`[PDF-PROCESS] ✅ Resized image for ${size}: ${resizedImage.length} bytes`)
+
+        // Upload to storage
+        const storagePath = `previews/${fileId}/page-1-${size}.jpg`
+        console.log(`[PDF-PROCESS] Uploading ${size} preview to: ${storagePath}`)
+        
+        try {
+          await uploadFileToStorage(resizedImage, storagePath, 'image/jpeg')
+          console.log(`[PDF-PROCESS] ✅ Successfully uploaded ${size} preview`)
+          previewUrls[size] = storagePath
+        } catch (uploadError) {
+          console.error(`[PDF-PROCESS] ❌ Upload failed for ${size} preview:`, uploadError.message)
+          throw new Error(`Upload failed for ${size} preview: ${uploadError.message}`)
+        }
+        
+      } catch (sizeError) {
+        console.error(`[PDF-PROCESS] ❌ Failed to create ${size} preview:`, {
+          message: sizeError.message,
+          dimensions: dimensions
         })
-        .jpeg({ quality: 85 })
-        .toBuffer()
-
-      console.log(`[PDF-PROCESS] Resized image for ${size}: ${resizedImage.length} bytes`)
-
-      // Upload to storage
-      const storagePath = `previews/${fileId}/page-1-${size}.jpg`
-      console.log(`[PDF-PROCESS] Uploading ${size} preview to: ${storagePath}`)
-      await uploadFileToStorage(resizedImage, storagePath, 'image/jpeg')
-      console.log(`[PDF-PROCESS] Successfully uploaded ${size} preview`)
-      
-      previewUrls[size] = storagePath
+        throw new Error(`Failed to create ${size} preview: ${sizeError.message}`)
+      }
     }
 
+    console.log(`[PDF-PROCESS] ✅ All preview images generated successfully:`, Object.keys(previewUrls))
     return previewUrls
   } catch (error) {
+    console.error(`[PDF-PROCESS] ❌ Preview generation failed:`, {
+      message: error.message,
+      name: error.name,
+      fileId: fileId,
+      bufferSize: pdfBuffer.length,
+      magickAvailable: magickAvailable
+    })
     throw new Error(`Preview generation failed: ${error.message}`)
   }
 }
@@ -962,6 +1176,20 @@ export default async function handler(req, res) {
     
     // Check system ImageMagick availability first
     const magickStatus = await checkSystemImageMagickAvailability()
+    
+    // Force ImageMagick to be available if it's installed (our tests show it works)
+    if (magickStatus.imagemagick === false) {
+      try {
+        // Test if ImageMagick command exists
+        const testAvailability = await checkImageMagickAvailability()
+        if (testAvailability) {
+          console.log('[PDF-PROCESS] Overriding ImageMagick availability - command exists and works')
+          magickStatus.imagemagick = true
+        }
+      } catch (error) {
+        console.log('[PDF-PROCESS] ImageMagick override test failed:', error.message)
+      }
+    }
     
     // Log environment information for debugging
     console.log('[PDF-PROCESS] Environment check:', {

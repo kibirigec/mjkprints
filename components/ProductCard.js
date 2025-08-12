@@ -1,22 +1,43 @@
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { useCart } from '../context/CartContext'
-import { isPDFProduct, getProductDisplayImage, formatPageCount, PDFBadge, PDFPageIndicator, normalizeProductData } from '../utils/productUtils'
+import { useFavorites } from '../context/FavoritesContext'
+import { isPDFProduct, formatPageCount, PDFBadge, PDFPageIndicator, normalizeProductData, getProductSoldCount } from '../utils/productUtils'
+import { getProductImage } from '../lib/supabase'
 import { PDFPageIndicator as PDFPageIndicatorComponent, PDFBadge as PDFBadgeComponent } from './PDFViewer'
 
-export default function ProductCard({ product, onProductClick }) {
+function ProductCard({ product, onProductClick, isPriority = false, showNewBadge = false }) {
   const { addToCart } = useCart()
+  const { toggleFavorite, isFavorite } = useFavorites()
   const [isAdding, setIsAdding] = useState(false)
+  const [alreadyInCart, setAlreadyInCart] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false)
   
   // Normalize product data to ensure consistent access to file information
   const normalizedProduct = normalizeProductData(product)
   
-  // Product type detection
-  const isPDF = isPDFProduct(normalizedProduct)
-  const displayImage = getProductDisplayImage(normalizedProduct)
-  const pageCount = normalizedProduct?.page_count || 0
+  // Memoize expensive calculations to prevent unnecessary recalculations
+  const { isPDF, displayImage, pageCount } = useMemo(() => {
+    if (!product) {
+      return {
+        isPDF: false,
+        displayImage: '/api/placeholder/400/400',
+        pageCount: 0
+      }
+    }
+    return {
+      isPDF: isPDFProduct(normalizedProduct),
+      displayImage: getProductImage(normalizedProduct)?.url || '/api/placeholder/400/400',
+      pageCount: normalizedProduct?.page_count || 0
+    }
+  }, [product, normalizedProduct])
+  
+  // Early return if no product provided - after hooks
+  if (!product) {
+    return null
+  }
   
   // Fallback image for when display image fails to load
   const fallbackImage = '/api/placeholder/400/400'
@@ -36,18 +57,43 @@ export default function ProductCard({ product, onProductClick }) {
     e.stopPropagation()
     
     setIsAdding(true)
-    addToCart(normalizedProduct)
+    const wasAdded = addToCart(normalizedProduct)
+    
+    if (!wasAdded) {
+      setAlreadyInCart(true)
+    }
     
     // Add a small delay for visual feedback
     setTimeout(() => {
       setIsAdding(false)
-    }, 800)
+      setAlreadyInCart(false)
+    }, wasAdded ? 800 : 1200) // Show "already in cart" longer
   }
 
   const handleCardClick = (e) => {
     // Only trigger modal if onProductClick is provided and click wasn't on interactive elements
     if (onProductClick && !e.defaultPrevented) {
       onProductClick(normalizedProduct)
+    }
+  }
+
+  const handleToggleFavorite = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setIsTogglingFavorite(true)
+    
+    try {
+      const wasAdded = toggleFavorite(normalizedProduct)
+      console.log(`❤️ ${wasAdded ? 'Added to' : 'Removed from'} favorites:`, normalizedProduct.title)
+      
+      // Small delay for visual feedback
+      setTimeout(() => {
+        setIsTogglingFavorite(false)
+      }, 300)
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      setIsTogglingFavorite(false)
     }
   }
 
@@ -66,7 +112,7 @@ export default function ProductCard({ product, onProductClick }) {
       aria-label={`View details for ${normalizedProduct.title}`}
     >
       {/* Etsy-style clean card */}
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="bg-white rounded-lg shadow-sm hover:shadow-md overflow-hidden transition-shadow duration-200">
           {/* Image Container - Etsy Style */}
           <div className="relative aspect-square bg-gray-100 overflow-hidden">
             {/* Loading state */}
@@ -90,6 +136,7 @@ export default function ProductCard({ product, onProductClick }) {
               src={imageError ? fallbackImage : displayImage}
               alt={normalizedProduct.title}
               fill
+              priority={isPriority}
               className={`object-cover group-hover:scale-105 transition-transform duration-300 ease-out ${
                 imageLoading ? 'opacity-0' : 'opacity-100'
               }`}
@@ -98,8 +145,8 @@ export default function ProductCard({ product, onProductClick }) {
               onError={handleImageError}
             />
             
-            {/* Subtle overlay on hover */}
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            {/* Subtle overlay on hover - GPU accelerated */}
+            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 will-change-[opacity]" />
 
             {/* PDF Badge - Top Left */}
             {isPDF && (
@@ -115,33 +162,56 @@ export default function ProductCard({ product, onProductClick }) {
               </div>
             )}
 
+
             {/* Favorite/Heart Icon - Positioned to avoid conflicts */}
             <button 
-              className={`absolute w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-white ${
-                isPDF && pageCount > 0 ? 'top-12 right-3' : 'top-3 right-3'
-              }`}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                // Add to favorites functionality
-              }}
+              className={`absolute w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white will-change-[opacity] ${
+                isPDF && pageCount > 0 
+                  ? 'top-12 right-3' 
+                  : 'top-3 right-3'
+              } ${isFavorite(normalizedProduct.id) ? 'opacity-100' : ''}`}
+              onClick={handleToggleFavorite}
+              disabled={isTogglingFavorite}
+              title={isFavorite(normalizedProduct.id) ? 'Remove from favorites' : 'Add to favorites'}
             >
-              <svg className="w-4 h-4 text-gray-600 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
+              {isTogglingFavorite ? (
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg 
+                  className={`w-4 h-4 transition-colors ${
+                    isFavorite(normalizedProduct.id) 
+                      ? 'text-red-500 fill-current' 
+                      : 'text-gray-600 hover:text-red-500'
+                  }`} 
+                  fill={isFavorite(normalizedProduct.id) ? "currentColor" : "none"} 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              )}
             </button>
 
-            {/* Quick Add Button - Bottom */}
+            {/* Quick Add Button - Bottom Center */}
             <button
               onClick={handleAddToCart}
               disabled={isAdding}
-              className="absolute bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-gray-800 disabled:opacity-50"
+              className="absolute bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white px-4 py-2 rounded-full text-sm font-medium transition-opacity duration-200 hover:bg-gray-800 disabled:opacity-50 will-change-[opacity]"
             >
               {isAdding ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Adding...</span>
-                </div>
+                alreadyInCart ? (
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Already in cart</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Adding...</span>
+                  </div>
+                )
               ) : (
                 "Quick add"
               )}
@@ -160,26 +230,11 @@ export default function ProductCard({ product, onProductClick }) {
               Digital Artist
             </p>
             
-            {/* Price and Rating Row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
-                {/* Star Rating */}
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                  <span className="text-xs text-gray-500 ml-1">(124)</span>
-                </div>
-              </div>
-              
-              {/* Price */}
-              <div className="text-right">
-                <span className="text-lg font-semibold text-gray-900">
-                  ${normalizedProduct.price}
-                </span>
-              </div>
+            {/* Price */}
+            <div className="mb-2">
+              <span className="text-lg font-semibold text-gray-900">
+                ${normalizedProduct.price}
+              </span>
             </div>
 
             {/* Additional Details */}
@@ -188,6 +243,11 @@ export default function ProductCard({ product, onProductClick }) {
                 <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
                   Instant Download
                 </span>
+                {showNewBadge && (
+                  <span className="text-xs text-amber-800 bg-amber-100 px-2 py-1 rounded">
+                    NEW
+                  </span>
+                )}
                 {isPDF && (
                   <PDFPageIndicatorComponent 
                     pageCount={pageCount} 
@@ -196,7 +256,7 @@ export default function ProductCard({ product, onProductClick }) {
                 )}
               </div>
               <span className="text-xs text-gray-500">
-                {Math.floor(Math.random() * 50) + 10} sold
+                {getProductSoldCount(normalizedProduct)}
               </span>
             </div>
           </div>
@@ -204,3 +264,6 @@ export default function ProductCard({ product, onProductClick }) {
     </div>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(ProductCard)

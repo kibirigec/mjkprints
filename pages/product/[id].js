@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Image from 'next/image'
@@ -6,11 +6,21 @@ import Link from 'next/link'
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import { useCart } from '../../context/CartContext'
+import { generateModalLink } from '../../utils/urlUtils'
 
 export default function ProductPage({ product }) {
   const router = useRouter()
   const { addToCart } = useCart()
   const [isAdded, setIsAdded] = useState(false)
+
+  // Redirect to modal view if modal=true parameter is present
+  useEffect(() => {
+    if (router.query.modal === 'true' && product?.id) {
+      // Redirect to homepage with modal open
+      const modalUrl = generateModalLink(product.id)
+      router.replace(modalUrl)
+    }
+  }, [router.query.modal, product?.id, router])
 
   if (router.isFallback) {
     return (

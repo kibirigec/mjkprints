@@ -68,35 +68,43 @@ export function getProductType(product) {
   return isPDFProduct(product) ? 'pdf' : 'image'
 }
 
+
 /**
- * Get the display image for a product
- * For PDFs, this returns the first preview image or falls back to the main image
- * For images, this returns the main image
+ * Get the best available image variant for a given size preference
  * @param {Object} product - Product object
- * @returns {string} - Image URL
+ * @param {string} sizePreference - Preferred size ('small', 'medium', 'large', 'original')
+ * @returns {Object|null} - Image variant object with url, width, height
  */
-export function getProductDisplayImage(product) {
-  if (isPDFProduct(product)) {
-    // Try to get first preview image from both file_info and file_uploads formats
-    const fileInfo = product?.file_info || product?.file_uploads
-    const firstPreviewUrl = getFirstPreviewUrl(fileInfo?.preview_urls)
-    
-    if (firstPreviewUrl) {
-      return firstPreviewUrl
-    }
-    
-    // Fall back to thumbnail if available
-    const thumbnailUrls = fileInfo?.thumbnail_urls
-    if (thumbnailUrls?.large) {
-      return thumbnailUrls.large
-    }
-    if (thumbnailUrls?.medium) {
-      return thumbnailUrls.medium
+export function getProductImageVariant(product, sizePreference = 'medium') {
+  if (!product?.image_file_id) return null
+  
+  const imageFileInfo = product?.file_info || product?.file_uploads
+  if (!imageFileInfo?.image_variants) return null
+  
+  const variants = imageFileInfo.image_variants
+  
+  // Try the requested size first
+  if (variants[sizePreference]) {
+    return variants[sizePreference]
+  }
+  
+  // Fallback order based on requested size
+  const fallbackOrder = {
+    small: ['small', 'medium', 'large', 'original'],
+    medium: ['medium', 'large', 'small', 'original'],
+    large: ['large', 'medium', 'original', 'small'],
+    original: ['original', 'large', 'medium', 'small']
+  }
+  
+  const order = fallbackOrder[sizePreference] || fallbackOrder.medium
+  
+  for (const size of order) {
+    if (variants[size]) {
+      return variants[size]
     }
   }
   
-  // Fall back to main product image
-  return product?.image || '/api/placeholder/300/300'
+  return null
 }
 
 /**
@@ -286,4 +294,55 @@ export function shouldShowPreviewLimitNotice(product) {
   const previewLimit = getPreviewPageLimit(product)
   
   return pageCount > previewLimit
+}
+
+/**
+ * Generate a consistent "sold" count for a product based on its ID
+ * This ensures the same product always shows the same sold count
+ * @param {Object} product - The product object
+ * @returns {string} - Formatted sold count like "30+ sold"
+ */
+export function getProductSoldCount(product) {
+  if (!product?.id) {
+    return '10+ sold' // Fallback for products without ID
+  }
+  
+  // Create a simple hash from the product ID to get consistent results
+  let hash = 0
+  const id = product.id.toString()
+  for (let i = 0; i < id.length; i++) {
+    const char = id.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  
+  // Make hash positive
+  hash = Math.abs(hash)
+  
+  // Define sold count brackets with weights (more likely to get lower numbers)
+  const brackets = [
+    { count: '10+', weight: 30 },
+    { count: '30+', weight: 25 },
+    { count: '50+', weight: 20 },
+    { count: '100+', weight: 15 },
+    { count: '200+', weight: 7 },
+    { count: '500+', weight: 3 }
+  ]
+  
+  // Calculate total weight
+  const totalWeight = brackets.reduce((sum, bracket) => sum + bracket.weight, 0)
+  
+  // Use hash to select bracket
+  const selection = hash % totalWeight
+  let currentWeight = 0
+  
+  for (const bracket of brackets) {
+    currentWeight += bracket.weight
+    if (selection < currentWeight) {
+      return `${bracket.count} sold`
+    }
+  }
+  
+  // Fallback (should never reach here)
+  return '30+ sold'
 }

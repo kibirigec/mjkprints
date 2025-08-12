@@ -1,32 +1,32 @@
 import { useCart } from '../context/CartContext'
 import Image from 'next/image'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
+import { getProductImage } from '../lib/supabase'
 
 export default function CartDrawer({ isOpen, onClose }) {
   const { cart, updateQuantity, removeFromCart, getTotal } = useCart()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const router = useRouter()
 
   const handleCheckout = async () => {
+    console.log('🛒 CartDrawer: Starting checkout redirect...', { cartItems: cart.length })
     setIsCheckingOut(true)
     
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: cart,
-          total: getTotal(),
-        }),
-      })
-
-      if (response.ok) {
-        alert('Order placed successfully! You would receive download links via email.')
-        onClose()
-      }
+      // Close the drawer first
+      onClose()
+      
+      // Small delay for smooth transition
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Redirect to cart page for full checkout experience
+      await router.push('/cart')
+      
+      console.log('✅ CartDrawer: Successfully redirected to cart page')
     } catch (error) {
-      alert('Checkout failed. Please try again.')
+      console.error('❌ CartDrawer: Redirect failed:', error)
+      alert('Unable to proceed to checkout. Please try again.')
     } finally {
       setIsCheckingOut(false)
     }
@@ -48,7 +48,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.8 7h9.6" />
                 </svg>
                 <h2 className="text-lg font-medium text-primary">
-                  Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
+                  Cart ({cart.length})
                 </h2>
               </div>
               <button
@@ -78,11 +78,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                     <div className="flex space-x-3">
                       <div className="w-20 h-20 relative bg-gray-100 flex-shrink-0">
                         <Image
-                          src={item.image}
+                          src={getProductImage(item, 'small')?.url || item.image || '/api/placeholder/200/200'}
                           alt={item.title}
                           fill
                           className="object-cover"
                           sizes="80px"
+                          onError={(e) => {
+                            e.target.src = '/api/placeholder/200/200'
+                          }}
                         />
                       </div>
                       
@@ -98,23 +101,9 @@ export default function CartDrawer({ isOpen, onClose }) {
                             ${item.price}
                           </div>
                           
-                          {/* Quantity controls */}
-                          <div className="flex items-center border border-gray-300 rounded">
-                            <button
-                              onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                              className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600 border-r border-gray-300"
-                            >
-                              −
-                            </button>
-                            <span className="w-10 text-center text-sm font-medium">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600 border-l border-gray-300"
-                            >
-                              +
-                            </button>
+                          {/* Digital download indicator */}
+                          <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                            1× Digital Download
                           </div>
                         </div>
                         
@@ -142,7 +131,7 @@ export default function CartDrawer({ isOpen, onClose }) {
               {/* Subtotal */}
               <div className="flex justify-between items-center mb-3">
                 <span className="text-lg font-medium">
-                  Subtotal ({cart.reduce((total, item) => total + item.quantity, 0)} items):
+                  Subtotal ({cart.length} {cart.length === 1 ? 'product' : 'products'}):
                 </span>
                 <span className="text-lg font-bold text-gray-900">
                   ${getTotal().toFixed(2)}
@@ -155,7 +144,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                   disabled={isCheckingOut}
                   className="w-full bg-secondary hover:bg-secondary-dark text-primary font-medium py-2 px-4 rounded text-sm transition-colors shadow-sm"
                 >
-                  {isCheckingOut ? 'Processing...' : 'Proceed to checkout'}
+                  {isCheckingOut ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span>Going to checkout...</span>
+                    </div>
+                  ) : (
+                    'Go to Checkout'
+                  )}
                 </button>
                 
                 <div className="text-center">
