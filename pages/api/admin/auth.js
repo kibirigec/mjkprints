@@ -101,13 +101,20 @@ export default async function handler(req, res) {
       console.error('❌ DASHBOARD_PASSCODE environment variable not set')
       console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('DASHBOARD')))
       console.error('NODE_ENV:', process.env.NODE_ENV)
-      console.error('All env keys:', Object.keys(process.env).sort())
+      console.error('All env keys count:', Object.keys(process.env).length)
+      
+      // Temporary debug info for production (will remove after fixing)
+      const debugInfo = {
+        availableEnvVars: Object.keys(process.env).filter(k => k.includes('DASHBOARD')),
+        nodeEnv: process.env.NODE_ENV,
+        envKeysCount: Object.keys(process.env).length,
+        hasNetlifyEnvs: Object.keys(process.env).some(k => k.startsWith('NETLIFY')),
+        timestamp: new Date().toISOString()
+      }
+      
       return res.status(500).json({ 
         error: 'Server configuration error',
-        debug: process.env.NODE_ENV === 'development' ? {
-          availableEnvVars: Object.keys(process.env).filter(k => k.includes('DASHBOARD')),
-          nodeEnv: process.env.NODE_ENV
-        } : undefined
+        debug: debugInfo  // Show in both dev and prod temporarily
       })
     }
 

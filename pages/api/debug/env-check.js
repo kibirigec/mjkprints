@@ -1,11 +1,15 @@
 // Debug endpoint to check environment variables in production
 export default function handler(req, res) {
-  // Only allow in development or with a special debug token
-  const debugToken = req.headers['x-debug-token']
+  // Allow access with debug token or in development
+  const debugToken = req.headers['x-debug-token'] || req.query.debug
   const isDev = process.env.NODE_ENV === 'development'
   
   if (!isDev && debugToken !== 'mjk-debug-2024') {
-    return res.status(404).json({ error: 'Not found' })
+    return res.status(200).json({ 
+      error: 'Access denied',
+      hint: 'Add ?debug=mjk-debug-2024 to URL or X-Debug-Token header',
+      timestamp: new Date().toISOString()
+    })
   }
 
   const envCheck = {
