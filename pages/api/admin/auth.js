@@ -99,7 +99,16 @@ export default async function handler(req, res) {
     
     if (!expectedPasscode) {
       console.error('❌ DASHBOARD_PASSCODE environment variable not set')
-      return res.status(500).json({ error: 'Server configuration error' })
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('DASHBOARD')))
+      console.error('NODE_ENV:', process.env.NODE_ENV)
+      console.error('All env keys:', Object.keys(process.env).sort())
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        debug: process.env.NODE_ENV === 'development' ? {
+          availableEnvVars: Object.keys(process.env).filter(k => k.includes('DASHBOARD')),
+          nodeEnv: process.env.NODE_ENV
+        } : undefined
+      })
     }
 
     // SECURITY: Use constant-time comparison to prevent timing attacks
