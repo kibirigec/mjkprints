@@ -121,10 +121,15 @@ export default async function handler(req, res) {
     // SECURITY: Use constant-time comparison to prevent timing attacks
     let isValidPasscode = false
     try {
+      console.log('🔍 Auth debug - passcode received:', passcode.length, 'chars')
+      console.log('🔍 Auth debug - expected starts with $2b$:', expectedPasscode.startsWith('$2b$'))
+      
       // For backward compatibility, check if it's a hash or plain text
       if (expectedPasscode.startsWith('$2b$')) {
         // It's a bcrypt hash
+        console.log('🔍 Auth debug - using bcrypt comparison')
         isValidPasscode = await bcrypt.compare(passcode, expectedPasscode)
+        console.log('🔍 Auth debug - bcrypt result:', isValidPasscode)
       } else {
         // It's plain text - use constant-time comparison
         // Convert both to buffers for crypto.timingSafeEqual
@@ -147,9 +152,13 @@ export default async function handler(req, res) {
         }
       }
     } catch (error) {
-      console.error('Passcode verification error:', error)
+      console.error('Passcode verification error:', error.message)
+      console.error('Error details:', error)
       recordAttempt(clientIP, false)
-      return res.status(500).json({ error: 'Authentication error' })
+      return res.status(500).json({ 
+        error: 'Authentication error',
+        debug: process.env.NODE_ENV === 'development' ? error.message : 'Internal error'
+      })
     }
 
     if (!isValidPasscode) {
