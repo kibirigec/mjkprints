@@ -28,7 +28,9 @@
       "WebFetch(domain:stackoverflow.com)",
       "Bash(npm uninstall:*)",
       "Bash(cat:*)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(git merge:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
