@@ -218,6 +218,17 @@ export class ServerSecurity {
     return token
   }
 
+  // Get secure cookie options
+  static getSecureCookieOptions() {
+    return {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: SECURITY_CONFIG.SESSION_TIMEOUT / 1000, // Convert to seconds
+      path: '/'
+    }
+  }
+
   // Verify session token
   static verifySessionToken(token) {
     try {
