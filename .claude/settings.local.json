@@ -43,7 +43,8 @@
       "Bash(timeout 10s npm run build:*)",
       "Bash(git checkout:*)",
       "Bash(timeout 30s npm run build)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
