@@ -52,7 +52,9 @@
       "Bash(timeout 30s npm run build)",
       "Bash(open:*)",
       "Bash(git remote add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote:*)"
     ],
     "deny": []
   }
