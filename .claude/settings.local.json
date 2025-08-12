@@ -50,7 +50,9 @@
       "Bash(kill:*)",
       "Bash(timeout 10s npm run build:*)",
       "Bash(timeout 30s npm run build)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
