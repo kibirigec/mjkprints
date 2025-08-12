@@ -1,4 +1,7 @@
 import { ServerSecurity } from '../../../utils/security'
+import bcrypt from 'bcrypt'
+import crypto from 'crypto'
+import { serialize } from 'cookie'
 
 // Rate limiting storage (in production, use Redis or database)
 const rateLimitStore = new Map()
@@ -99,8 +102,39 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Server configuration error' })
     }
 
-    // Verify passcode (simple string comparison for digits)
-    const isValidPasscode = passcode === expectedPasscode
+    // SECURITY: Use constant-time comparison to prevent timing attacks
+    let isValidPasscode = false
+    try {
+      // For backward compatibility, check if it's a hash or plain text
+      if (expectedPasscode.startsWith('$2b$')) {
+        // It's a bcrypt hash
+        isValidPasscode = await bcrypt.compare(passcode, expectedPasscode)
+      } else {
+        // It's plain text - use constant-time comparison
+        // Convert both to buffers for crypto.timingSafeEqual
+        const expectedBuffer = Buffer.from(expectedPasscode, 'utf8')
+        const providedBuffer = Buffer.from(passcode, 'utf8')
+        
+        // Ensure same length to prevent length-based attacks
+        if (expectedBuffer.length === providedBuffer.length) {
+          isValidPasscode = crypto.timingSafeEqual(expectedBuffer, providedBuffer)
+        } else {
+          // Still perform a comparison to maintain consistent timing
+          const dummyBuffer = Buffer.alloc(expectedBuffer.length)
+          crypto.timingSafeEqual(expectedBuffer, dummyBuffer)
+          isValidPasscode = false
+        }
+        
+        // Log warning for plain text passcode
+        if (isValidPasscode) {
+          console.warn('⚠️  SECURITY WARNING: Using plain text passcode. Consider using bcrypt hash.')
+        }
+      }
+    } catch (error) {
+      console.error('Passcode verification error:', error)
+      recordAttempt(clientIP, false)
+      return res.status(500).json({ error: 'Authentication error' })
+    }
 
     if (!isValidPasscode) {
       recordAttempt(clientIP, false)
@@ -122,12 +156,18 @@ export default async function handler(req, res) {
       userAgent: req.headers['user-agent']
     })
 
+    // SECURITY: Set HTTP-only cookie instead of sending token in response
+    const cookieOptions = ServerSecurity.getSecureCookieOptions()
+    const sessionCookie = serialize('mjk-admin-session', sessionToken, cookieOptions)
+    
+    res.setHeader('Set-Cookie', sessionCookie)
+    
     console.log(`✅ Successful admin login from IP: ${clientIP}`)
 
+    // Don't send token in response - it's now in secure HTTP-only cookie
     return res.status(200).json({
       success: true,
       message: 'Authentication successful',
-      token: sessionToken,
       expiresAt: Date.now() + (2 * 60 * 60 * 1000) // 2 hours
     })
 
@@ -145,17 +185,38 @@ export default async function handler(req, res) {
 // Verify admin session middleware (can be used in other admin routes)
 export function verifyAdminSession(req, res, next) {
   try {
-    const authHeader = req.headers.authorization
+    // SECURITY: Read session token from HTTP-only cookie
+    const sessionToken = req.cookies?.['mjk-admin-session']
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No authorization header' })
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'No session cookie found' })
     }
 
-    const token = authHeader.substring(7)
-    const sessionData = ServerSecurity.verifySessionToken(token)
+    const sessionData = ServerSecurity.verifySessionToken(sessionToken)
 
     if (!sessionData || sessionData.type !== 'admin') {
+      // Clear invalid cookie
+      const clearCookie = serialize('mjk-admin-session', '', { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 0,
+        path: '/' 
+      })
+      res.setHeader('Set-Cookie', clearCookie)
+      
       return res.status(401).json({ error: 'Invalid or expired session' })
+    }
+
+    // Optional: Verify IP address hasn't changed (prevents session hijacking)
+    const clientIP = req.headers['x-forwarded-for'] || 
+                     req.headers['x-real-ip'] || 
+                     req.connection.remoteAddress || 
+                     'unknown'
+    
+    if (sessionData.ip && sessionData.ip !== clientIP) {
+      console.warn(`⚠️  Session IP mismatch: expected ${sessionData.ip}, got ${clientIP}`)
+      // Optionally reject or log this - for now just warn
     }
 
     // Add session data to request
