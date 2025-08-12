@@ -35,8 +35,8 @@ export default function PasscodeProtection({ children }) {
   }, [passcode, error])
 
   const handleInputChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '') // Only digits
-    if (value.length <= 8) { // Limit length
+    const value = e.target.value // Allow all characters
+    if (value.length <= 20) { // Increased length limit for alphanumeric passwords
       setPasscode(value)
     }
   }
@@ -49,8 +49,8 @@ export default function PasscodeProtection({ children }) {
       return
     }
 
-    if (!passcode || passcode.length < 3) {
-      setError('Please enter a valid passcode')
+    if (!passcode || passcode.length < 1) {
+      setError('Please enter a passcode')
       triggerShake()
       return
     }
@@ -173,10 +173,9 @@ export default function PasscodeProtection({ children }) {
                     ? 'border-red-300 focus:ring-red-200 focus:border-red-500'
                     : 'border-gray-300 focus:ring-primary/20 focus:border-primary'
                 } ${isLocked ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-                placeholder="••••••"
-                maxLength="8"
+                placeholder="Enter passcode"
+                maxLength="20"
                 autoComplete="off"
-                inputMode="numeric"
               />
             </div>
 
