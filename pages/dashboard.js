@@ -66,16 +66,42 @@ export default function Dashboard() {
   const fetchFiles = async () => {
     setIsFilesLoading(true);
     try {
-      // Extract files from products and add additional file information
-      const productFiles = products
-        .filter(product => product.file_uploads)
-        .map(product => ({
-          ...product.file_uploads,
-          product_title: product.title,
-          product_id: product.id,
-          created_at: product.created_at
-        }));
-      setFiles(productFiles);
+      // Fetch all files directly from file_uploads table
+      const response = await fetch('/api/debug/list-all-files');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch files');
+      }
+
+      const allFiles = [];
+      
+      // Get files from the file_uploads table directly
+      if (Array.isArray(result.fileUploads)) {
+        result.fileUploads.forEach(file => {
+          // Find which product (if any) references this file
+          const referencingProduct = result.products?.find(product => 
+            product.pdf_file_id === file.id || product.image_file_id === file.id
+          );
+          
+          allFiles.push({
+            ...file,
+            product_title: referencingProduct?.title || null,
+            product_id: referencingProduct?.id || null,
+            is_orphaned: !referencingProduct,
+            file_status: referencingProduct ? 'linked' : 'orphaned'
+          });
+        });
+      }
+
+      // Sort files by creation date (newest first)
+      allFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      setFiles(allFiles);
+      console.log(`[DASHBOARD] Loaded ${allFiles.length} files:`, {
+        linked: allFiles.filter(f => !f.is_orphaned).length,
+        orphaned: allFiles.filter(f => f.is_orphaned).length
+      });
     } catch (err) {
       console.error('Error fetching files:', err);
       setFiles([]);
@@ -300,14 +326,47 @@ export default function Dashboard() {
                   <div className="p-6 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h1 className="text-2xl font-bold text-primary">PDF Files</h1>
-                        <p className="text-gray-600 mt-1">Manage your uploaded PDF files</p>
+                        <h1 className="text-2xl font-bold text-primary">All Files</h1>
+                        <p className="text-gray-600 mt-1">Manage your uploaded files (PDFs and images)</p>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {files.length} file{files.length !== 1 ? 's' : ''} total
+                      <div className="text-sm space-y-1">
+                        <div className="text-gray-600 font-medium">
+                          {files.length} total file{files.length !== 1 ? 's' : ''}
+                        </div>
+                        {files.length > 0 && (
+                          <div className="flex space-x-4 text-xs">
+                            <span className="flex items-center text-blue-600">
+                              🔗 {files.filter(f => !f.is_orphaned).length} linked to products
+                            </span>
+                            <span className="flex items-center text-orange-600">
+                              ⚠️ {files.filter(f => f.is_orphaned).length} orphaned files
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
+
+                  {/* Info Section for Orphaned Files */}
+                  {files.filter(f => f.is_orphaned).length > 0 && (
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mx-6 my-4">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <h3 className="text-sm font-medium text-amber-800">
+                            {files.filter(f => f.is_orphaned).length} Orphaned Files Found
+                          </h3>
+                          <p className="text-sm text-amber-700 mt-1">
+                            Orphaned files exist in storage but aren't linked to any product. You can safely delete them to clean up your storage.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Files Content */}
                   <div className="p-6">
@@ -349,11 +408,17 @@ export default function Dashboard() {
                                   {file.file_name}
                                 </h4>
                                 <p className="text-sm text-gray-500 truncate">
-                                  Product: {file.product_title}
+                                  {file.product_title ? (
+                                    <>Product: {file.product_title}</>
+                                  ) : (
+                                    <span className="text-amber-600">Not linked to any product</span>
+                                  )}
                                 </p>
-                                <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
-                                  <span>{formatFileSize(file.file_size)}</span>
-                                  {file.page_count && <span>{file.page_count} pages</span>}
+                                <div className="mt-2 flex items-center flex-wrap gap-2 text-xs">
+                                  <span className="text-gray-500">{formatFileSize(file.file_size)}</span>
+                                  {file.page_count && <span className="text-gray-500">{file.page_count} pages</span>}
+                                  <span className="text-gray-500">{file.file_type?.toUpperCase()}</span>
+                                  
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                     file.processing_status === 'completed' 
                                       ? 'bg-green-100 text-green-800'
@@ -364,6 +429,14 @@ export default function Dashboard() {
                                       : 'bg-gray-100 text-gray-800'
                                   }`}>
                                     {file.processing_status}
+                                  </span>
+                                  
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    file.is_orphaned
+                                      ? 'bg-orange-100 text-orange-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {file.is_orphaned ? '⚠️ Orphaned' : '🔗 Linked'}
                                   </span>
                                 </div>
                                 <div className="mt-3 flex space-x-2">
