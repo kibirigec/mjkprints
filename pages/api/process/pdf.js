@@ -306,9 +306,10 @@ async function initPdfJs() {
       
       // Explicitly disable worker for serverless environments
       // This prevents the "Cannot find module pdf.worker.mjs" error
-      // Use empty string instead of null to avoid "Invalid workerSrc type" error
-      pdfjsLib.GlobalWorkerOptions.workerSrc = ''
-      console.log('[PDF-PROCESS] ✅ PDF.js worker disabled for serverless compatibility')
+      // PDF.js requires a valid worker source, so we use a data URL to provide a minimal worker
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'data:application/javascript;base64,' + 
+        btoa('self.onmessage = function() {};')
+      console.log('[PDF-PROCESS] ✅ PDF.js worker configured with minimal inline worker for serverless compatibility')
       
       // Validate that all required browser APIs are available
       const requiredAPIs = ['Canvas', 'Image', 'DOMMatrix', 'DOMPoint', 'ImageData', 'Path2D']

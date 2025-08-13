@@ -93,8 +93,9 @@ export default async function handler(req, res) {
     try {
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
       // Disable worker for serverless environments
-      // Use empty string instead of null to avoid "Invalid workerSrc type" error
-      pdfjs.GlobalWorkerOptions.workerSrc = ''
+      // PDF.js requires a valid worker source, so we use a data URL to provide a minimal worker
+      pdfjs.GlobalWorkerOptions.workerSrc = 'data:application/javascript;base64,' + 
+        btoa('self.onmessage = function() {};')
       diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version, workerDisabled: true }
     } catch (error) {
       diagnostics.tests.pdfjsImport = { success: false, error: error.message }
@@ -114,8 +115,9 @@ export default async function handler(req, res) {
 
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
       // Disable worker for serverless environments
-      // Use empty string instead of null to avoid "Invalid workerSrc type" error
-      pdfjs.GlobalWorkerOptions.workerSrc = ''
+      // PDF.js requires a valid worker source, so we use a data URL to provide a minimal worker
+      pdfjs.GlobalWorkerOptions.workerSrc = 'data:application/javascript;base64,' + 
+        btoa('self.onmessage = function() {};')
       
       const uint8Array = new Uint8Array(minimalPdf)
       const pdf = await pdfjs.getDocument({ 
