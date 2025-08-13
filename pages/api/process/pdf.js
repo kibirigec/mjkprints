@@ -306,8 +306,8 @@ async function initPdfJs() {
       
       // Explicitly disable worker for serverless environments
       // This prevents the "Cannot find module pdf.worker.mjs" error
-      pdfjsLib.GlobalWorkerOptions.workerSrc = null
-      pdfjsLib.GlobalWorkerOptions.workerPort = null
+      // Use empty string instead of null to avoid "Invalid workerSrc type" error
+      pdfjsLib.GlobalWorkerOptions.workerSrc = ''
       console.log('[PDF-PROCESS] ✅ PDF.js worker disabled for serverless compatibility')
       
       // Validate that all required browser APIs are available
