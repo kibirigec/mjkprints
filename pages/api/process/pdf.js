@@ -1180,6 +1180,75 @@ const generatePreviewImages = async (pdfBuffer, fileId, magickAvailable = false)
   }
 }
 
+// Generate placeholder preview when PDF processing fails
+const generatePlaceholderPreview = async (fileId) => {
+  const previewUrls = {}
+  
+  try {
+    console.log(`[PDF-PROCESS] Generating placeholder preview for file: ${fileId}`)
+    
+    // Create placeholder images for each size
+    for (const [size, dimensions] of Object.entries(PREVIEW_SIZES)) {
+      try {
+        console.log(`[PDF-PROCESS] Creating placeholder ${size} (${dimensions.width}x${dimensions.height})`)
+        
+        // Create placeholder image using Canvas
+        const canvas = new Canvas(dimensions.width, dimensions.height)
+        const context = canvas.getContext('2d')
+        
+        // White background
+        context.fillStyle = '#ffffff'
+        context.fillRect(0, 0, dimensions.width, dimensions.height)
+        
+        // Add border
+        context.strokeStyle = '#e0e0e0'
+        context.lineWidth = 2
+        context.strokeRect(10, 10, dimensions.width - 20, dimensions.height - 20)
+        
+        // Add PDF icon and text
+        const centerX = dimensions.width / 2
+        const centerY = dimensions.height / 2
+        const iconSize = Math.min(dimensions.width, dimensions.height) * 0.2
+        
+        // Document icon
+        context.strokeStyle = '#cccccc'
+        context.lineWidth = 3
+        context.strokeRect(centerX - iconSize/2, centerY - iconSize/2 - 20, iconSize, iconSize * 1.2)
+        
+        // Add text
+        context.fillStyle = '#666666'
+        context.font = `${Math.round(iconSize * 0.15)}px Arial`
+        context.textAlign = 'center'
+        context.textBaseline = 'middle'
+        context.fillText('PDF Document', centerX, centerY + iconSize/2 + 30)
+        context.font = `${Math.round(iconSize * 0.1)}px Arial`
+        context.fillText('Preview not available', centerX, centerY + iconSize/2 + 50)
+        
+        // Convert to JPEG buffer
+        const placeholderImage = canvas.toBuffer('image/jpeg', { quality: 85 })
+        
+        // Upload to storage
+        const storagePath = `previews/${fileId}/placeholder-${size}.jpg`
+        console.log(`[PDF-PROCESS] Uploading placeholder ${size} to: ${storagePath}`)
+        
+        await uploadFileToStorage(placeholderImage, storagePath, 'image/jpeg')
+        console.log(`[PDF-PROCESS] Successfully uploaded ${size} placeholder`)
+        previewUrls[size] = storagePath
+        
+      } catch (sizeError) {
+        console.error(`[PDF-PROCESS] Failed to create ${size} placeholder:`, sizeError.message)
+        // Continue with other sizes even if one fails
+      }
+    }
+
+    console.log(`[PDF-PROCESS] Placeholder preview generation completed:`, Object.keys(previewUrls))
+    return previewUrls
+  } catch (error) {
+    console.error(`[PDF-PROCESS] Placeholder preview generation failed:`, error.message)
+    throw new Error(`Placeholder generation failed: ${error.message}`)
+  }
+}
+
 // Generate thumbnail images  
 const generateThumbnails = async (pdfBuffer, fileId, pageCount, magickAvailable = false) => {
   const thumbnailUrls = {}
@@ -1477,16 +1546,58 @@ export default async function handler(req, res) {
       })
     }
 
-    // Handle PDF.js initialization and compatibility errors
+    // Handle PDF.js initialization and compatibility errors - return 422 instead of 503
     if (error.message.includes('PDF.js initialization failed')) {
-      console.log('[PDF-PROCESS] PDF.js initialization error - returning 503:', {
+      console.log('[PDF-PROCESS] PDF.js initialization error - falling back to placeholder:', {
         errorMessage: error.message,
-        details: 'PDF.js module failed to load'
+        details: 'PDF.js module failed to load, using fallback'
       })
-      return res.status(503).json({ 
-        error: 'Service unavailable',
-        details: 'PDF processing service is temporarily unavailable'
-      })
+      
+      // Try to generate a basic placeholder instead of failing completely
+      try {
+        console.log('[PDF-PROCESS] Attempting to create placeholder preview for failed processing')
+        const placeholderUrls = await generatePlaceholderPreview(fileId)
+        
+        // Update file with placeholder results
+        const processingData = {
+          page_count: 1, // Default to 1 page for placeholder
+          dimensions: { width: 612, height: 792 }, // Standard letter size
+          preview_urls: placeholderUrls,
+          thumbnail_urls: placeholderUrls,
+          metadata: {
+            processingError: 'PDF.js initialization failed',
+            fallbackUsed: true,
+            processedAt: new Date().toISOString(),
+            processingVersion: '1.0-fallback'
+          }
+        }
+
+        const updatedFile = await updateFileWithProcessingResults(fileId, processingData)
+        
+        return res.status(200).json({
+          success: true,
+          message: 'PDF processed with fallback preview',
+          warning: 'Full PDF processing unavailable, placeholder generated',
+          file: {
+            id: updatedFile.id,
+            fileName: updatedFile.file_name,
+            fileSize: updatedFile.file_size,
+            pageCount: updatedFile.page_count,
+            dimensions: updatedFile.dimensions,
+            previewUrls: updatedFile.preview_urls,
+            thumbnailUrls: updatedFile.thumbnail_urls,
+            processingStatus: updatedFile.processing_status,
+            processedAt: updatedFile.updated_at,
+            metadata: updatedFile.processing_metadata
+          }
+        })
+      } catch (placeholderError) {
+        console.error('[PDF-PROCESS] Placeholder generation also failed:', placeholderError.message)
+        return res.status(422).json({ 
+          error: 'Processing unavailable',
+          details: 'PDF processing service is currently unavailable. The file has been uploaded but preview generation failed.'
+        })
+      }
     }
     
     // Handle Canvas-specific rendering errors
@@ -1512,7 +1623,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // Handle browser API compatibility errors
+    // Handle browser API compatibility errors with fallback
     if (error.message.includes('PDF dimensions extraction failed') ||
         error.message.includes('PDF to image conversion failed') ||
         error.message.includes('DOMMatrix is not defined') ||
@@ -1521,38 +1632,61 @@ export default async function handler(req, res) {
         error.message.includes('Missing required browser APIs') ||
         error.message.includes('Please provide binary data as `Uint8Array`') ||
         error.message.includes('Canvas is not supported')) {
-      console.log('[PDF-PROCESS] PDF.js compatibility error - returning 422:', {
+      console.log('[PDF-PROCESS] PDF.js compatibility error - attempting fallback:', {
         errorMessage: error.message,
         errorStack: error.stack?.split('\n').slice(0, 5).join('\n'),
         missingAPI: error.message.match(/(DOMMatrix|Path2D|ImageData|DOMPoint|Canvas|Uint8Array).*not defined/)?.[1] || 'unknown',
         buildUsed: 'legacy',
         nodeVersion: process.version,
-        platform: process.platform,
-        globalsAtError: {
-          Canvas: typeof global.Canvas,
-          Image: typeof global.Image,
-          DOMMatrix: typeof global.DOMMatrix,
-          DOMPoint: typeof global.DOMPoint,
-          ImageData: typeof global.ImageData,
-          Path2D: typeof global.Path2D,
-          createCanvas: typeof global.createCanvas
-        },
-        canvasPackageInfo: {
-          canvasConstructor: typeof Canvas,
-          canvasInstance: (() => {
-            try {
-              const testCanvas = new Canvas(10, 10)
-              return { success: true, width: testCanvas.width }
-            } catch (e) {
-              return { success: false, error: e.message }
-            }
-          })()
+        platform: process.platform
+      })
+      
+      // Try to generate a basic placeholder instead of failing completely
+      try {
+        console.log('[PDF-PROCESS] Attempting to create placeholder preview for compatibility error')
+        const placeholderUrls = await generatePlaceholderPreview(fileId)
+        
+        // Update file with placeholder results
+        const processingData = {
+          page_count: 1, // Default to 1 page for placeholder
+          dimensions: { width: 612, height: 792 }, // Standard letter size
+          preview_urls: placeholderUrls,
+          thumbnail_urls: placeholderUrls,
+          metadata: {
+            processingError: 'PDF.js compatibility issue',
+            fallbackUsed: true,
+            apiError: error.message.match(/(DOMMatrix|Path2D|ImageData|DOMPoint|Canvas|Uint8Array).*not defined/)?.[1] || 'unknown',
+            processedAt: new Date().toISOString(),
+            processingVersion: '1.0-fallback'
+          }
         }
-      })
-      return res.status(422).json({ 
-        error: 'PDF processing error',
-        details: `Unable to process PDF file. ${error.message.includes('Uint8Array') ? 'Data format compatibility issue' : 'Browser API compatibility issue'} detected.`
-      })
+
+        const updatedFile = await updateFileWithProcessingResults(fileId, processingData)
+        
+        return res.status(200).json({
+          success: true,
+          message: 'PDF processed with fallback preview',
+          warning: 'Full PDF processing unavailable due to compatibility issues, placeholder generated',
+          file: {
+            id: updatedFile.id,
+            fileName: updatedFile.file_name,
+            fileSize: updatedFile.file_size,
+            pageCount: updatedFile.page_count,
+            dimensions: updatedFile.dimensions,
+            previewUrls: updatedFile.preview_urls,
+            thumbnailUrls: updatedFile.thumbnail_urls,
+            processingStatus: updatedFile.processing_status,
+            processedAt: updatedFile.updated_at,
+            metadata: updatedFile.processing_metadata
+          }
+        })
+      } catch (placeholderError) {
+        console.error('[PDF-PROCESS] Placeholder generation also failed:', placeholderError.message)
+        return res.status(422).json({ 
+          error: 'PDF processing error',
+          details: 'Unable to process PDF file due to compatibility issues. The file has been uploaded but preview generation failed.'
+        })
+      }
     }
 
     if (error.message.includes('Preview generation failed') || 
