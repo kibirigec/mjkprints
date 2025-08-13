@@ -163,7 +163,6 @@ export default function DebugProduction() {
                 Sends a sample order confirmation email to test MailerSend integration
               </p>
             </div>
-          </div>
             
             {/* Quick Status Overview */}
             {(envResults || authResults || dbResults) && (
