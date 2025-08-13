@@ -295,6 +295,12 @@ async function initPdfJs() {
       // Use legacy build specifically designed for Node.js environments
       // This resolves the DOMMatrix timing issue where globals are needed during import
       console.log('[PDF-PROCESS] Initializing PDF.js legacy build for Node.js compatibility...')
+      console.log('[PDF-PROCESS] Environment info:', {
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch
+      })
+      
       pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
       console.log('[PDF-PROCESS] ✅ PDF.js legacy build initialized successfully, version:', pdfjsLib.version)
       
@@ -307,10 +313,23 @@ async function initPdfJs() {
         throw new Error(`Missing required browser APIs: ${missingAPIs.join(', ')}. These APIs are required for PDF.js Node.js compatibility.`)
       }
       
+      // Test canvas functionality
+      try {
+        const testCanvas = new global.Canvas(10, 10)
+        const testContext = testCanvas.getContext('2d')
+        console.log('[PDF-PROCESS] ✅ Canvas functionality test passed')
+      } catch (canvasError) {
+        console.error('[PDF-PROCESS] ❌ Canvas functionality test failed:', canvasError.message)
+        throw new Error(`Canvas functionality test failed: ${canvasError.message}`)
+      }
+      
       console.log('[PDF-PROCESS] ✅ All required browser APIs validated successfully')
       
     } catch (error) {
-      console.error('[PDF-PROCESS] ❌ Failed to initialize PDF.js:', error)
+      console.error('[PDF-PROCESS] ❌ Failed to initialize PDF.js:', {
+        message: error.message,
+        stack: error.stack?.split('\n').slice(0, 5).join('\n')
+      })
       throw new Error(`PDF.js initialization failed: ${error.message}`)
     }
   }
@@ -409,12 +428,25 @@ const getPDFDimensions = async (pdfBuffer) => {
     
     // Convert Buffer to Uint8Array for PDF.js compatibility
     const uint8Array = new Uint8Array(pdfBuffer)
-    const pdf = await pdfjs.getDocument({ 
-      data: uint8Array,
-      isEvalSupported: false,
-      disableWorker: true,
-      canvasFactory: new NodeCanvasFactory()
-    }).promise
+    console.log(`[PDF-PROCESS] Extracting dimensions from PDF (${uint8Array.length} bytes)`)
+    
+    let pdf
+    try {
+      pdf = await pdfjs.getDocument({ 
+        data: uint8Array,
+        isEvalSupported: false,
+        disableWorker: true,
+        canvasFactory: new NodeCanvasFactory()
+      }).promise
+      console.log(`[PDF-PROCESS] ✅ PDF document loaded for dimensions extraction`)
+    } catch (loadError) {
+      console.error(`[PDF-PROCESS] ❌ PDF document loading failed during dimensions extraction:`, {
+        message: loadError.message,
+        stack: loadError.stack?.split('\n').slice(0, 3).join('\n')
+      })
+      throw new Error(`PDF document loading failed: ${loadError.message}`)
+    }
+    
     const page = await pdf.getPage(1) // Get first page
     const viewport = page.getViewport({ scale: 1.0 })
     
@@ -541,12 +573,29 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     const canvasFactory = new NodeCanvasFactory()
     
     console.log(`[PDF-PROCESS] Loading PDF document (${uint8Array.length} bytes)`)
-    const pdf = await pdfjs.getDocument({ 
-      data: uint8Array,
+    console.log(`[PDF-PROCESS] PDF.js getDocument options:`, {
+      dataLength: uint8Array.length,
       isEvalSupported: false,
       disableWorker: true,
-      canvasFactory: canvasFactory
-    }).promise
+      hasCanvasFactory: !!canvasFactory
+    })
+    
+    let pdf
+    try {
+      pdf = await pdfjs.getDocument({ 
+        data: uint8Array,
+        isEvalSupported: false,
+        disableWorker: true,
+        canvasFactory: canvasFactory
+      }).promise
+      console.log(`[PDF-PROCESS] ✅ PDF document loaded successfully`)
+    } catch (loadError) {
+      console.error(`[PDF-PROCESS] ❌ PDF document loading failed:`, {
+        message: loadError.message,
+        stack: loadError.stack?.split('\n').slice(0, 3).join('\n')
+      })
+      throw new Error(`PDF document loading failed: ${loadError.message}`)
+    }
     
     console.log(`[PDF-PROCESS] PDF loaded, total pages: ${pdf.numPages}`)
     
@@ -804,12 +853,22 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
     const canvasFactory = new NodeCanvasFactory()
     
     console.log(`[PDF-PROCESS] Loading PDF document...`)
-    const pdf = await pdfjs.getDocument({ 
-      data: uint8Array,
-      isEvalSupported: false,
-      disableWorker: true,
-      canvasFactory: canvasFactory
-    }).promise
+    let pdf
+    try {
+      pdf = await pdfjs.getDocument({ 
+        data: uint8Array,
+        isEvalSupported: false,
+        disableWorker: true,
+        canvasFactory: canvasFactory
+      }).promise
+      console.log(`[PDF-PROCESS] ✅ PDF document loaded successfully`)
+    } catch (loadError) {
+      console.error(`[PDF-PROCESS] ❌ PDF document loading failed:`, {
+        message: loadError.message,
+        stack: loadError.stack?.split('\n').slice(0, 3).join('\n')
+      })
+      throw new Error(`PDF document loading failed: ${loadError.message}`)
+    }
     
     console.log(`[PDF-PROCESS] PDF loaded, getting page ${pageNumber}...`)
     const page = await pdf.getPage(pageNumber)
@@ -1454,23 +1513,40 @@ export default async function handler(req, res) {
         error.message.includes('DOMMatrix is not defined') ||
         error.message.includes('Path2D is not defined') ||
         error.message.includes('ImageData is not defined') ||
-        error.message.includes('Missing required browser APIs')) {
+        error.message.includes('Missing required browser APIs') ||
+        error.message.includes('Please provide binary data as `Uint8Array`') ||
+        error.message.includes('Canvas is not supported')) {
       console.log('[PDF-PROCESS] PDF.js compatibility error - returning 422:', {
         errorMessage: error.message,
-        missingAPI: error.message.match(/(DOMMatrix|Path2D|ImageData|DOMPoint).*not defined/)?.[1] || 'unknown',
+        errorStack: error.stack?.split('\n').slice(0, 5).join('\n'),
+        missingAPI: error.message.match(/(DOMMatrix|Path2D|ImageData|DOMPoint|Canvas|Uint8Array).*not defined/)?.[1] || 'unknown',
         buildUsed: 'legacy',
+        nodeVersion: process.version,
+        platform: process.platform,
         globalsAtError: {
           Canvas: typeof global.Canvas,
           Image: typeof global.Image,
           DOMMatrix: typeof global.DOMMatrix,
           DOMPoint: typeof global.DOMPoint,
           ImageData: typeof global.ImageData,
-          Path2D: typeof global.Path2D
+          Path2D: typeof global.Path2D,
+          createCanvas: typeof global.createCanvas
+        },
+        canvasPackageInfo: {
+          canvasConstructor: typeof Canvas,
+          canvasInstance: (() => {
+            try {
+              const testCanvas = new Canvas(10, 10)
+              return { success: true, width: testCanvas.width }
+            } catch (e) {
+              return { success: false, error: e.message }
+            }
+          })()
         }
       })
       return res.status(422).json({ 
         error: 'PDF processing error',
-        details: 'Unable to process PDF file. Browser API compatibility issue detected.'
+        details: `Unable to process PDF file. ${error.message.includes('Uint8Array') ? 'Data format compatibility issue' : 'Browser API compatibility issue'} detected.`
       })
     }
 
