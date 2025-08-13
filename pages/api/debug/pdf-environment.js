@@ -92,10 +92,10 @@ export default async function handler(req, res) {
     // Test PDF.js import
     try {
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      // Configure worker for serverless environments
-      // Use CDN worker URL as fallback for serverless environments where local worker files aren't available
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`
-      diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version, workerCDN: true }
+      // Force PDF.js to run in main thread for serverless environments
+      // This completely disables worker usage which isn't supported in Node.js serverless
+      pdfjs.GlobalWorkerOptions.workerSrc = false
+      diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version, workerDisabled: true }
     } catch (error) {
       diagnostics.tests.pdfjsImport = { success: false, error: error.message }
     }
@@ -113,9 +113,9 @@ export default async function handler(req, res) {
       ])
 
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      // Configure worker for serverless environments
-      // Use CDN worker URL as fallback for serverless environments where local worker files aren't available
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`
+      // Force PDF.js to run in main thread for serverless environments
+      // This completely disables worker usage which isn't supported in Node.js serverless
+      pdfjs.GlobalWorkerOptions.workerSrc = false
       
       const uint8Array = new Uint8Array(minimalPdf)
       const pdf = await pdfjs.getDocument({ 

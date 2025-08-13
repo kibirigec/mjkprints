@@ -304,10 +304,10 @@ async function initPdfJs() {
       pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
       console.log('[PDF-PROCESS] ✅ PDF.js legacy build initialized successfully, version:', pdfjsLib.version)
       
-      // Configure worker for serverless environments
-      // Use CDN worker URL as fallback for serverless environments where local worker files aren't available
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
-      console.log('[PDF-PROCESS] ✅ PDF.js worker configured with CDN worker for serverless compatibility')
+      // Force PDF.js to run in main thread for serverless environments
+      // This completely disables worker usage which isn't supported in Node.js serverless
+      pdfjsLib.GlobalWorkerOptions.workerSrc = false
+      console.log('[PDF-PROCESS] ✅ PDF.js worker disabled, running in main thread for serverless compatibility')
       
       // Validate that all required browser APIs are available
       const requiredAPIs = ['Canvas', 'Image', 'DOMMatrix', 'DOMPoint', 'ImageData', 'Path2D']
