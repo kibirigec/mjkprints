@@ -304,6 +304,12 @@ async function initPdfJs() {
       pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
       console.log('[PDF-PROCESS] ✅ PDF.js legacy build initialized successfully, version:', pdfjsLib.version)
       
+      // Explicitly disable worker for serverless environments
+      // This prevents the "Cannot find module pdf.worker.mjs" error
+      pdfjsLib.GlobalWorkerOptions.workerSrc = null
+      pdfjsLib.GlobalWorkerOptions.workerPort = null
+      console.log('[PDF-PROCESS] ✅ PDF.js worker disabled for serverless compatibility')
+      
       // Validate that all required browser APIs are available
       const requiredAPIs = ['Canvas', 'Image', 'DOMMatrix', 'DOMPoint', 'ImageData', 'Path2D']
       const missingAPIs = requiredAPIs.filter(api => typeof global[api] === 'undefined')

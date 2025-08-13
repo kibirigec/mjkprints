@@ -55,7 +55,8 @@
       "Bash(git push:*)",
       "Bash(git branch:*)",
       "Bash(git remote:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(NODE_ENV=development node test-pdf-processing.js)"
     ],
     "deny": []
   }

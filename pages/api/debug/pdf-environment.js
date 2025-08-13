@@ -92,7 +92,10 @@ export default async function handler(req, res) {
     // Test PDF.js import
     try {
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version }
+      // Disable worker for serverless environments
+      pdfjs.GlobalWorkerOptions.workerSrc = null
+      pdfjs.GlobalWorkerOptions.workerPort = null
+      diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version, workerDisabled: true }
     } catch (error) {
       diagnostics.tests.pdfjsImport = { success: false, error: error.message }
     }
@@ -110,6 +113,10 @@ export default async function handler(req, res) {
       ])
 
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+      // Disable worker for serverless environments
+      pdfjs.GlobalWorkerOptions.workerSrc = null
+      pdfjs.GlobalWorkerOptions.workerPort = null
+      
       const uint8Array = new Uint8Array(minimalPdf)
       const pdf = await pdfjs.getDocument({ 
         data: uint8Array,
