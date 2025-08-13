@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [isFilesLoading, setIsFilesLoading] = useState(false);
   const [isDeletingFile, setIsDeletingFile] = useState(null);
   const [activeTab, setActiveTab] = useState('products');
+  const [fileTypeFilter, setFileTypeFilter] = useState('all'); // 'all', 'pdf', 'image'
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -150,8 +151,41 @@ export default function Dashboard() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   };
 
+  // Filter files based on selected type
+  const getFilteredFiles = () => {
+    if (fileTypeFilter === 'all') return files
+    if (fileTypeFilter === 'orphaned') return files.filter(file => file.is_orphaned)
+    return files.filter(file => file.file_type === fileTypeFilter)
+  }
+
+  const filteredFiles = getFilteredFiles()
+
   const handleDeleteFile = async (fileId, fileName) => {
-    if (!confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+    // Find the file to get detailed info for confirmation
+    const fileToDelete = files.find(f => f.id === fileId)
+    if (!fileToDelete) {
+      alert('File not found!')
+      return
+    }
+
+    // Create detailed confirmation message
+    const fileType = fileToDelete.file_type === 'pdf' ? 'PDF file' : 'Image file'
+    const linkStatus = fileToDelete.is_orphaned ? 'NOT linked to any product' : `linked to product: "${fileToDelete.product_title}"`
+    
+    const confirmMessage = `🗑️ DELETE ${fileType.toUpperCase()}
+
+File: "${fileName}"
+Type: ${fileType}
+Status: ${linkStatus}
+Storage: ${fileToDelete.storage_path}
+
+⚠️ WARNING: ${fileToDelete.file_type === 'pdf' ? 'This will delete the actual PDF file that customers would download!' : 'This will delete the cover/preview image for the product.'}
+
+${!fileToDelete.is_orphaned ? '🚨 This file is linked to a product and deleting it may break the product display!' : '✅ This orphaned file can be safely deleted.'}
+
+Are you sure you want to permanently delete this ${fileType}?`
+
+    if (!confirm(confirmMessage)) {
       return
     }
 
@@ -329,23 +363,82 @@ export default function Dashboard() {
                         <h1 className="text-2xl font-bold text-primary">All Files</h1>
                         <p className="text-gray-600 mt-1">Manage your uploaded files (PDFs and images)</p>
                       </div>
-                      <div className="text-sm space-y-1">
+                      <div className="text-sm space-y-2">
                         <div className="text-gray-600 font-medium">
-                          {files.length} total file{files.length !== 1 ? 's' : ''}
+                          {filteredFiles.length} of {files.length} file{files.length !== 1 ? 's' : ''} shown
                         </div>
                         {files.length > 0 && (
-                          <div className="flex space-x-4 text-xs">
-                            <span className="flex items-center text-blue-600">
-                              🔗 {files.filter(f => !f.is_orphaned).length} linked to products
-                            </span>
-                            <span className="flex items-center text-orange-600">
-                              ⚠️ {files.filter(f => f.is_orphaned).length} orphaned files
-                            </span>
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex space-x-4 text-xs">
+                              <span className="flex items-center text-red-600">
+                                📄 {files.filter(f => f.file_type === 'pdf').length} PDF files
+                              </span>
+                              <span className="flex items-center text-purple-600">
+                                🖼️ {files.filter(f => f.file_type === 'image').length} Image files
+                              </span>
+                            </div>
+                            <div className="flex space-x-4 text-xs">
+                              <span className="flex items-center text-blue-600">
+                                🔗 {files.filter(f => !f.is_orphaned).length} linked
+                              </span>
+                              <span className="flex items-center text-orange-600">
+                                ⚠️ {files.filter(f => f.is_orphaned).length} orphaned
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
+
+                  {/* File Type Filter Buttons */}
+                  {files.length > 0 && (
+                    <div className="px-6 pb-4 border-b border-gray-100">
+                      <div className="flex space-x-2">
+                        <span className="text-sm text-gray-600 font-medium mr-3">Filter by type:</span>
+                        <button
+                          onClick={() => setFileTypeFilter('all')}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            fileTypeFilter === 'all'
+                              ? 'bg-gray-800 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          All Files ({files.length})
+                        </button>
+                        <button
+                          onClick={() => setFileTypeFilter('pdf')}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            fileTypeFilter === 'pdf'
+                              ? 'bg-red-600 text-white'
+                              : 'bg-red-50 text-red-700 hover:bg-red-100'
+                          }`}
+                        >
+                          📄 PDFs ({files.filter(f => f.file_type === 'pdf').length})
+                        </button>
+                        <button
+                          onClick={() => setFileTypeFilter('image')}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            fileTypeFilter === 'image'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                          }`}
+                        >
+                          🖼️ Images ({files.filter(f => f.file_type === 'image').length})
+                        </button>
+                        <button
+                          onClick={() => setFileTypeFilter('orphaned')}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            fileTypeFilter === 'orphaned'
+                              ? 'bg-orange-600 text-white'
+                              : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                          }`}
+                        >
+                          ⚠️ Orphaned ({files.filter(f => f.is_orphaned).length})
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Info Section for Orphaned Files */}
                   {files.filter(f => f.is_orphaned).length > 0 && (
@@ -393,15 +486,34 @@ export default function Dashboard() {
                           Create Product with PDF
                         </button>
                       </div>
+                    ) : filteredFiles.length === 0 ? (
+                      <div className="text-center py-12">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">No files found</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {fileTypeFilter === 'all' 
+                            ? 'No files have been uploaded yet.'
+                            : `No ${fileTypeFilter === 'orphaned' ? 'orphaned' : fileTypeFilter.toUpperCase()} files found. Try a different filter.`
+                          }
+                        </p>
+                      </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {files.map((file) => (
+                        {filteredFiles.map((file) => (
                           <div key={file.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div className="flex items-start space-x-3">
                               <div className="flex-shrink-0">
-                                <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                </svg>
+                                {file.file_type === 'pdf' ? (
+                                  <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                  </svg>
+                                )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-sm font-medium text-gray-900 truncate">
@@ -414,30 +526,44 @@ export default function Dashboard() {
                                     <span className="text-amber-600">Not linked to any product</span>
                                   )}
                                 </p>
-                                <div className="mt-2 flex items-center flex-wrap gap-2 text-xs">
-                                  <span className="text-gray-500">{formatFileSize(file.file_size)}</span>
-                                  {file.page_count && <span className="text-gray-500">{file.page_count} pages</span>}
-                                  <span className="text-gray-500">{file.file_type?.toUpperCase()}</span>
+                                <div className="mt-2 space-y-2">
+                                  <div className="flex items-center flex-wrap gap-2 text-xs">
+                                    <span className="text-gray-500">{formatFileSize(file.file_size)}</span>
+                                    {file.page_count && <span className="text-gray-500">{file.page_count} pages</span>}
+                                    
+                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                      file.file_type === 'pdf' 
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-purple-100 text-purple-800'
+                                    }`}>
+                                      {file.file_type === 'pdf' ? '📄 PDF' : '🖼️ IMAGE'}
+                                    </span>
+                                    
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      file.processing_status === 'completed' 
+                                        ? 'bg-green-100 text-green-800'
+                                        : file.processing_status === 'processing'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : file.processing_status === 'failed'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {file.processing_status}
+                                    </span>
+                                    
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      file.is_orphaned
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : 'bg-blue-100 text-blue-800'
+                                    }`}>
+                                      {file.is_orphaned ? '⚠️ Orphaned' : '🔗 Linked'}
+                                    </span>
+                                  </div>
                                   
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    file.processing_status === 'completed' 
-                                      ? 'bg-green-100 text-green-800'
-                                      : file.processing_status === 'processing'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : file.processing_status === 'failed'
-                                      ? 'bg-red-100 text-red-800'
-                                      : 'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {file.processing_status}
-                                  </span>
-                                  
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    file.is_orphaned
-                                      ? 'bg-orange-100 text-orange-800'
-                                      : 'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {file.is_orphaned ? '⚠️ Orphaned' : '🔗 Linked'}
-                                  </span>
+                                  {/* Storage Path for debugging */}
+                                  <div className="text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded border">
+                                    <strong>Storage:</strong> {file.storage_path}
+                                  </div>
                                 </div>
                                 <div className="mt-3 flex space-x-2">
                                   {file.processing_status === 'completed' && (
