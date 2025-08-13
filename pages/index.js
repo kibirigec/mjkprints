@@ -13,7 +13,7 @@ import { generateModalLink, isModalUrl, getProductIdFromQuery } from '../utils/u
 
 export default function Home({ featuredProducts }) {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Remove artificial loading
   
   // Normalize products data for consistent handling and sort by creation date (newest first)
   const normalizedProducts = normalizeProductList(featuredProducts || []).sort((a, b) => {
@@ -31,15 +31,6 @@ export default function Home({ featuredProducts }) {
     ? normalizedProducts.find(product => product.id === modalProductId)
     : null
 
-  useEffect(() => {
-    // Simulate loading state even with static props
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 800)
-    
-    return () => clearTimeout(timer)
-  }, [])
-
   const openProductModal = (product) => {
     const modalUrl = generateModalLink(product.id)
     router.push(modalUrl, undefined, { shallow: true })
@@ -55,6 +46,9 @@ export default function Home({ featuredProducts }) {
       <Head>
         <title>MJK Prints - Unique Digital Art Prints</title>
         <meta name="description" content="Discover unique digital prints from independent designers. High-quality, instant downloads for your creative projects." />
+        <link rel="preload" as="image" href="/images/pln4.jpg" />
+        <link rel="dns-prefetch" href="//images.unsplash.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="" />
       </Head>
 
       <div className="min-h-screen bg-white">
@@ -197,7 +191,7 @@ export default function Home({ featuredProducts }) {
                       key={product.id} 
                       product={product} 
                       onProductClick={openProductModal}
-                      isPriority={index < 6} // First 6 images get priority loading
+                      isPriority={index < 10} // First 10 images get priority loading
                       showNewBadge={index < 2} // First 2 products get NEW badge
                     />
                   ))

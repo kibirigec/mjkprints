@@ -486,37 +486,37 @@ INSERT INTO products (title, description, price, image) VALUES
     'Abstract Watercolor Mountains',
     'Beautiful abstract mountain landscape in soft watercolor tones. Perfect for modern home decor and office spaces.',
     15.99,
-    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=800&fit=crop&crop=center'
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&q=80&fm=webp&fit=crop&crop=center'
 ),
 (
     'Minimalist Geometric Pattern',
     'Clean and modern geometric design with neutral colors. Ideal for contemporary interior design projects.',
     12.99,
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=800&fit=crop&crop=center'
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&q=80&fm=webp&fit=crop&crop=center'
 ),
 (
     'Botanical Line Art Collection',
     'Elegant botanical illustrations in minimalist line art style. Set of 3 prints featuring different plant species.',
     24.99,
-    'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop&crop=center'
+    'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=400&q=80&fm=webp&fit=crop&crop=center'
 ),
 (
     'Vintage Typography Poster',
     'Retro-inspired typography design with motivational quote. Perfect for creative spaces and home offices.',
     18.99,
-    'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=800&h=800&fit=crop&crop=center'
+    'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=400&q=80&fm=webp&fit=crop&crop=center'
 ),
 (
     'Ocean Wave Abstract',
     'Flowing abstract design inspired by ocean waves. Calming blue and white color palette for peaceful spaces.',
     16.99,
-    'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=800&h=800&fit=crop&crop=center'
+    'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=400&h=400&q=80&fm=webp&fit=crop&crop=center'
 ),
 (
     'Modern Art Deco Pattern',
     'Sophisticated Art Deco inspired pattern in gold and black. Luxury design perfect for elegant interiors.',
     22.99,
-    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&h=800&fit=crop&crop=center'
+    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=400&q=80&fm=webp&fit=crop&crop=center'
 )
 ON CONFLICT DO NOTHING;
 
