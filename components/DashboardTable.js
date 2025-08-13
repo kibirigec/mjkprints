@@ -9,22 +9,50 @@ export default function DashboardTable({ products = [], onEdit, onDelete, onRefr
   const safeProducts = Array.isArray(products) ? products : []
 
   const handleDelete = async (productId) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
+    // Find the product to get details for confirmation
+    const product = safeProducts.find(p => p.id === productId)
+    const productName = product ? product.title : 'this product'
+    const hasFiles = product?.file_uploads || product?.image_file_id
+    
+    const confirmMessage = `🗑️ DELETE PRODUCT
+
+Product: "${productName}"
+
+⚠️ WARNING: This will permanently delete:
+- The product listing
+- Any associated PDF files
+- Any associated image files
+- All product data
+
+${hasFiles ? '🚨 This product has associated files that will also be deleted!' : ''}
+
+This action cannot be undone. Are you sure?`
+
+    if (!confirm(confirmMessage)) return
     
     setIsDeleting(productId)
     
     try {
+      console.log(`[DASHBOARD] Deleting product: ${productId}`)
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
+        const result = await response.json()
+        console.log(`[DASHBOARD] Product deleted successfully:`, result)
         onRefresh()
       } else {
-        alert('Failed to delete product')
+        const errorData = await response.json()
+        console.error(`[DASHBOARD] Delete failed:`, errorData)
+        
+        // Show user-friendly error message
+        const errorMessage = errorData.details || errorData.error || 'Failed to delete product'
+        alert(`❌ Delete Failed\n\n${errorMessage}`)
       }
     } catch (error) {
-      alert('Error deleting product')
+      console.error(`[DASHBOARD] Delete error:`, error)
+      alert(`❌ Error deleting product\n\nNetwork error: ${error.message}`)
     } finally {
       setIsDeleting(null)
     }
