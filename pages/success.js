@@ -11,6 +11,8 @@ export default function SuccessPage() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [emailSending, setEmailSending] = useState(false)
+  const [emailResult, setEmailResult] = useState(null)
 
   useEffect(() => {
     if (order_id) {
@@ -32,6 +34,49 @@ export default function SuccessPage() {
       setError('Failed to load order details')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const resendEmail = async () => {
+    if (!order_id) {
+      setEmailResult({ success: false, message: 'No order ID available' })
+      return
+    }
+
+    setEmailSending(true)
+    setEmailResult(null)
+
+    try {
+      const response = await fetch(`/api/orders/${order_id}/resend-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setEmailResult({
+          success: true,
+          message: 'Email sent successfully! Check your inbox.',
+          details: result.details
+        })
+      } else {
+        setEmailResult({
+          success: false,
+          message: result.error || 'Failed to send email',
+          details: result.details
+        })
+      }
+    } catch (error) {
+      setEmailResult({
+        success: false,
+        message: 'Failed to send email. Please try again.',
+        details: error.message
+      })
+    } finally {
+      setEmailSending(false)
     }
   }
 
@@ -122,10 +167,66 @@ export default function SuccessPage() {
                   </svg>
                   <h3 className="text-lg font-semibold text-blue-800">Check Your Email</h3>
                 </div>
-                <p className="text-blue-700">
+                <p className="text-blue-700 mb-4">
                   Download links have been sent to your email address. 
                   Links will remain active for 7 days.
                 </p>
+                
+                {/* Resend Email Button */}
+                <div className="border-t border-blue-200 pt-4">
+                  <p className="text-sm text-blue-600 mb-3">
+                    Didn't receive the email? You can resend it here:
+                  </p>
+                  <button
+                    onClick={resendEmail}
+                    disabled={emailSending}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 mx-auto"
+                  >
+                    {emailSending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Resend Email</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Email Result */}
+                {emailResult && (
+                  <div className={`mt-4 p-3 rounded-lg text-sm ${
+                    emailResult.success 
+                      ? 'bg-green-100 border border-green-200 text-green-800' 
+                      : 'bg-red-100 border border-red-200 text-red-800'
+                  }`}>
+                    <div className="flex items-center space-x-2">
+                      {emailResult.success ? (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                      <span className="font-medium">{emailResult.message}</span>
+                    </div>
+                    {emailResult.details && (
+                      <div className="mt-2 text-xs opacity-75">
+                        {typeof emailResult.details === 'object' ? 
+                          `Sent to: ${emailResult.details.recipient || 'Unknown'}` : 
+                          emailResult.details
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
