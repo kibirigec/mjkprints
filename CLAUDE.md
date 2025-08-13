@@ -21,7 +21,7 @@ MJK Prints is a **production-ready digital art marketplace** built with Next.js 
 - **Frontend**: React 18 + Tailwind CSS with custom animations
 - **Backend**: Next.js API Routes + Supabase PostgreSQL 
 - **Payments**: Stripe Checkout + Webhooks
-- **Email**: SendGrid with HTML templates
+- **Email**: MailerSend with HTML templates and file attachments
 - **State**: React Context for cart + localStorage persistence
 
 ### Payment Flow Architecture
@@ -38,7 +38,7 @@ Cart → Email Collection → Stripe Checkout → Webhook → Order Creation →
 ### Key Service Files
 - `/lib/supabase.js` - Database operations (products, orders, downloads, customers)
 - `/lib/stripe.js` - Payment processing and webhook verification
-- `/lib/email.js` - SendGrid email templates and sending
+- `/lib/email.js` - MailerSend email templates, attachments, and sending
 - `/context/CartContext.js` - Shopping cart state management
 
 ## Agent Usage Guidelines
@@ -82,9 +82,10 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # Site Configuration
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-# Email Service (Optional - gracefully degrades)
-SENDGRID_API_KEY=SG...
-SENDGRID_FROM_EMAIL=noreply@yoursite.com
+# Email Service (Required for order confirmations)
+MAILERSEND_API_KEY=your_mailersend_api_key_here
+MAILERSEND_FROM_EMAIL=noreply@yourdomain.com
+MAILERSEND_FROM_NAME=MJK Prints
 ```
 
 **Database Setup:**
@@ -172,16 +173,16 @@ const { cart, addToCart } = useCart()
 
 ### Email Template Updates
 1. Modify templates in `/lib/email.js`
-2. Test with development SendGrid account
-3. Ensure responsive HTML design
-4. Include unsubscribe links for compliance
+2. Test with development MailerSend account using `node test-mailersend.js`
+3. Ensure responsive HTML design and file attachment support
+4. Verify mobile compatibility for email templates
 
 ## Production Deployment Checklist
 
 - [ ] Environment variables configured in deployment platform
 - [ ] Supabase production database schema deployed
 - [ ] Stripe webhook endpoint configured with production URL
-- [ ] SendGrid sender email verified
+- [ ] MailerSend domain verified and sender email configured
 - [ ] Domain configured and SSL enabled
 - [ ] Test complete purchase flow end-to-end
 
@@ -196,9 +197,11 @@ const { cart, addToCart } = useCart()
 - Check webhook endpoint URL is correct (must be accessible from internet)
 
 **"Email delivery failed"**
-- Verify SENDGRID_API_KEY is valid
-- Check sender email is verified in SendGrid
-- Review SendGrid activity logs for delivery status
+- Verify MAILERSEND_API_KEY is valid
+- Check domain is verified in MailerSend dashboard  
+- Ensure sender email is configured correctly
+- Review MailerSend activity logs for delivery status
+- Test using `node test-mailersend.js` in development
 
 **Products not showing on homepage**
 - Verify database schema is deployed (`supabase-setup.sql`)
