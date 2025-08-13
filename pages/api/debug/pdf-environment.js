@@ -92,11 +92,10 @@ export default async function handler(req, res) {
     // Test PDF.js import
     try {
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      // Disable worker for serverless environments
-      // PDF.js requires a valid worker source, so we use a data URL to provide a minimal worker
-      pdfjs.GlobalWorkerOptions.workerSrc = 'data:application/javascript;base64,' + 
-        btoa('self.onmessage = function() {};')
-      diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version, workerDisabled: true }
+      // Configure worker for serverless environments
+      // Use CDN worker URL as fallback for serverless environments where local worker files aren't available
+      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`
+      diagnostics.tests.pdfjsImport = { success: true, version: pdfjs.version, workerCDN: true }
     } catch (error) {
       diagnostics.tests.pdfjsImport = { success: false, error: error.message }
     }
@@ -114,10 +113,9 @@ export default async function handler(req, res) {
       ])
 
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      // Disable worker for serverless environments
-      // PDF.js requires a valid worker source, so we use a data URL to provide a minimal worker
-      pdfjs.GlobalWorkerOptions.workerSrc = 'data:application/javascript;base64,' + 
-        btoa('self.onmessage = function() {};')
+      // Configure worker for serverless environments
+      // Use CDN worker URL as fallback for serverless environments where local worker files aren't available
+      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`
       
       const uint8Array = new Uint8Array(minimalPdf)
       const pdf = await pdfjs.getDocument({ 
