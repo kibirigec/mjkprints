@@ -13,6 +13,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Product ID is required' })
   }
 
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ error: 'Invalid product ID format. Expected UUID.' })
+  }
+
   // Protect write operations (PUT, DELETE) with authentication
   if (['PUT', 'DELETE'].includes(method)) {
     try {

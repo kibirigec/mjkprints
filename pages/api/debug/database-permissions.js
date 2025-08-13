@@ -63,12 +63,10 @@ export default async function handler(req, res) {
         debugInfo.adminTests.readError = adminError?.message || null
         debugInfo.adminTests.dataCount = adminProducts?.length || 0
 
-        // Test admin write permissions
-        const testProductId = 'test-' + Date.now()
+        // Test admin write permissions (let database generate UUID)
         const { data: insertData, error: insertError } = await supabaseAdmin
           .from('products')
           .insert([{
-            id: testProductId,
             title: 'DB Permission Test Product',
             description: 'This is a test product for database permissions - will be deleted',
             price: 1.00,
@@ -80,11 +78,12 @@ export default async function handler(req, res) {
         debugInfo.adminTests.insertError = insertError?.message || null
 
         if (!insertError && insertData?.length > 0) {
-          // Test admin delete permissions  
+          // Test admin delete permissions using the generated UUID
+          const generatedId = insertData[0].id
           const { data: deleteData, error: deleteError } = await supabaseAdmin
             .from('products')
             .delete()
-            .eq('id', testProductId)
+            .eq('id', generatedId)
             .select()
 
           debugInfo.adminTests.canDelete = !deleteError
