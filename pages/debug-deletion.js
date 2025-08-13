@@ -17,21 +17,52 @@ export default function DebugDeletion() {
 
   const fetchFiles = async () => {
     try {
-      const response = await fetch('/api/products')
-      const products = await response.json()
-      const allFiles = products
-        .filter(product => product.file_uploads)
-        .map(product => ({
-          id: product.file_uploads.id,
-          fileName: product.file_uploads.file_name,
-          productTitle: product.title
-        }))
+      const response = await fetch('/api/debug/list-all-files')
+      const result = await response.json()
+      
+      // Get files from the file_uploads table directly
+      const allFiles = []
+      
+      if (Array.isArray(result.fileUploads)) {
+        allFiles.push(...result.fileUploads.map(file => ({
+          id: file.id,
+          fileName: file.file_name,
+          fileType: file.file_type,
+          source: 'file_uploads table',
+          isReferenced: result.products && Array.isArray(result.products) 
+            ? result.products.some(p => p.pdf_file_id === file.id || p.image_file_id === file.id)
+            : false
+        })))
+      }
+
+      // Also get files that are referenced by products
+      if (Array.isArray(result.products)) {
+        result.products.forEach(product => {
+          if (product.file_uploads) {
+            // Check if we already have this file
+            if (!allFiles.some(f => f.id === product.file_uploads.id)) {
+              allFiles.push({
+                id: product.file_uploads.id,
+                fileName: product.file_uploads.file_name,
+                fileType: product.file_uploads.file_type,
+                source: `product: ${product.title}`,
+                isReferenced: true
+              })
+            }
+          }
+        })
+      }
+
       setFiles(allFiles)
       if (allFiles.length > 0) {
         setSelectedFileId(allFiles[0].id)
       }
+
+      // Store the full debug result for display
+      setDebugResult(result)
     } catch (error) {
       console.error('Error fetching files:', error)
+      setDebugResult({ error: `Failed to fetch files: ${error.message}` })
     }
   }
 
@@ -125,10 +156,27 @@ export default function DebugDeletion() {
               <option value="">Select a file to test...</option>
               {files.map(file => (
                 <option key={file.id} value={file.id}>
-                  {file.fileName} (from: {file.productTitle})
+                  {file.fileName} ({file.fileType}) - {file.source} {file.isReferenced ? '[REFERENCED]' : '[ORPHANED]'}
                 </option>
               ))}
             </select>
+            
+            {files.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-yellow-800 text-sm">
+                ⚠️ No files found in database. This could mean:
+                <ul className="mt-2 ml-4 list-disc">
+                  <li>No files have been uploaded yet</li>
+                  <li>Files were deleted from database but not products</li>
+                  <li>Database connection issues</li>
+                </ul>
+              </div>
+            )}
+            
+            {files.length > 0 && (
+              <div className="text-sm text-gray-600 mb-4">
+                Found {files.length} files. Referenced files are linked to products, orphaned files are not.
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-lg shadow p-6 mb-6">
