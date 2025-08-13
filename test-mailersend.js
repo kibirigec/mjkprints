@@ -1,13 +1,23 @@
+import dotenv from 'dotenv'
 import { sendOrderConfirmationEmail } from './lib/email.js'
+
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' })
 
 // Test MailerSend integration
 const testEmail = async () => {
   console.log('🧪 Testing MailerSend integration...')
   
+  // Debug: Check if environment variables are loaded
+  console.log('📋 Environment check:')
+  console.log('- MAILERSEND_API_KEY:', process.env.MAILERSEND_API_KEY ? '✅ Set' : '❌ Missing')
+  console.log('- MAILERSEND_FROM_EMAIL:', process.env.MAILERSEND_FROM_EMAIL || '❌ Missing')
+  console.log('- MAILERSEND_FROM_NAME:', process.env.MAILERSEND_FROM_NAME || '❌ Missing')
+  
   // Mock order data
   const mockOrder = {
     id: 'test-order-123',
-    email: 'test@example.com',
+    email: 'modiqube@gmail.com', // Your MailerSend registration email
     total_amount: 19.99,
     created_at: new Date().toISOString(),
     order_items: [
@@ -25,7 +35,7 @@ const testEmail = async () => {
   // Mock download links
   const mockDownloadLinks = [
     {
-      download_url: 'http://localhost:3001/api/download/item-1?email=test@example.com',
+      download_url: 'http://localhost:3001/api/download/item-1?email=modiqube@gmail.com',
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     }
   ]

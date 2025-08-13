@@ -7,7 +7,10 @@ export default function DebugProduction() {
   const [envResults, setEnvResults] = useState(null)
   const [authResults, setAuthResults] = useState(null)
   const [dbResults, setDbResults] = useState(null)
+  const [emailResults, setEmailResults] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [testEmail, setTestEmail] = useState('modiqube@gmail.com')
 
   const runEnvironmentTest = async () => {
     setLoading(true)
@@ -43,6 +46,27 @@ export default function DebugProduction() {
       setDbResults({ error: error.message })
     }
     setLoading(false)
+  }
+
+  const runEmailTest = async () => {
+    setEmailLoading(true)
+    try {
+      const response = await fetch('/api/debug/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          testType: 'order-confirmation',
+          recipient: testEmail
+        })
+      })
+      const result = await response.json()
+      setEmailResults(result)
+    } catch (error) {
+      setEmailResults({ error: error.message, success: false })
+    }
+    setEmailLoading(false)
   }
 
   const runAllTests = async () => {
@@ -115,6 +139,31 @@ export default function DebugProduction() {
                 🗄️ Database Test
               </button>
             </div>
+            
+            {/* Email Test Section */}
+            <div className="bg-gray-50 rounded p-4">
+              <h3 className="font-semibold mb-3">📧 Email System Test</h3>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="test@example.com"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={runEmailTest}
+                  disabled={emailLoading || !testEmail}
+                  className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700 disabled:opacity-50"
+                >
+                  {emailLoading ? '⏳ Sending...' : '📧 Send Test Email'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Sends a sample order confirmation email to test MailerSend integration
+              </p>
+            </div>
+          </div>
             
             {/* Quick Status Overview */}
             {(envResults || authResults || dbResults) && (
@@ -340,6 +389,35 @@ export default function DebugProduction() {
             </div>
           )}
 
+          {/* Email Test Results */}
+          {emailResults && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">📧 Email Test Results</h2>
+              
+              {emailResults.success ? (
+                <div className="bg-green-50 border border-green-200 rounded p-4">
+                  <h3 className="font-semibold text-green-800 mb-2">✅ Email Sent Successfully!</h3>
+                  <div className="text-sm text-green-700">
+                    <p><strong>Type:</strong> {emailResults.details?.type}</p>
+                    <p><strong>Recipient:</strong> {emailResults.details?.recipient}</p>
+                    <p><strong>Order ID:</strong> {emailResults.details?.orderId}</p>
+                    <p className="mt-2">{emailResults.message}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-50 border border-red-200 rounded p-4">
+                  <h3 className="font-semibold text-red-800 mb-2">❌ Email Test Failed</h3>
+                  <div className="text-sm text-red-700">
+                    <p><strong>Error:</strong> {emailResults.error}</p>
+                    {emailResults.details && (
+                      <p><strong>Details:</strong> {emailResults.details}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Raw Results (for advanced debugging) */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">🔍 Raw Debug Data</h2>
@@ -365,6 +443,14 @@ export default function DebugProduction() {
                   <summary className="cursor-pointer font-medium">Database Results</summary>
                   <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
                     {JSON.stringify(dbResults, null, 2)}
+                  </pre>
+                </details>
+              )}
+              {emailResults && (
+                <details className="border rounded p-2">
+                  <summary className="cursor-pointer font-medium">Email Test Results</summary>
+                  <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
+                    {JSON.stringify(emailResults, null, 2)}
                   </pre>
                 </details>
               )}
