@@ -63,7 +63,54 @@ export default async function handler(req, res) {
 
       // Create Stripe checkout session
       console.log('[CHECKOUT] Creating Stripe checkout session...')
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'
+      
+      // Enhanced URL resolution with production failsafes
+      let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'
+      
+      // Production environment detection and failsafe
+      const isProduction = process.env.NODE_ENV === 'production'
+      const isNetlify = !!process.env.NETLIFY
+      const isVercel = !!process.env.VERCEL
+      
+      // If we're in production but still using localhost, try to detect the correct URL
+      if (isProduction && baseUrl.includes('localhost')) {
+        console.warn('[CHECKOUT] ⚠️ CRITICAL: Production environment detected but using localhost URL!')
+        
+        // Try to get the correct production URL from platform-specific variables
+        let productionUrl = null
+        
+        if (isNetlify) {
+          // For Netlify, try to get the deploy URL
+          productionUrl = process.env.DEPLOY_PRIME_URL || process.env.DEPLOY_URL
+          console.log('[CHECKOUT] Attempting Netlify URL fallback:', productionUrl)
+        } else if (isVercel) {
+          // For Vercel, construct from VERCEL_URL
+          productionUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+          console.log('[CHECKOUT] Attempting Vercel URL fallback:', productionUrl)
+        }
+        
+        // Use production URL if found, otherwise force a reasonable default
+        if (productionUrl && !productionUrl.includes('localhost')) {
+          baseUrl = productionUrl
+          console.log('[CHECKOUT] ✅ Using platform URL fallback:', baseUrl)
+        } else {
+          // Last resort: use a reasonable production URL
+          baseUrl = 'https://mjkprints.store'
+          console.error('[CHECKOUT] 🚨 USING HARDCODED FALLBACK URL:', baseUrl)
+        }
+      }
+      
+      // Debug logging for URL resolution
+      console.log('[CHECKOUT] Environment URL resolution:', {
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+        resolvedBaseUrl: baseUrl,
+        isProduction,
+        isNetlify,
+        isVercel,
+        nodeEnv: process.env.NODE_ENV,
+        deployUrl: process.env.DEPLOY_URL,
+        vercelUrl: process.env.VERCEL_URL
+      })
       
       const session = await createCheckoutSession({
         items,
@@ -71,6 +118,13 @@ export default async function handler(req, res) {
         orderId: order.id,
         successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
         cancelUrl: `${baseUrl}/cart?canceled=true`
+      })
+      
+      // Debug logging for generated URLs
+      console.log('[CHECKOUT] Generated Stripe URLs:', {
+        successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
+        cancelUrl: `${baseUrl}/cart?canceled=true`,
+        sessionId: session.id
       })
       console.log('[CHECKOUT] Stripe session created successfully:', session.id)
 

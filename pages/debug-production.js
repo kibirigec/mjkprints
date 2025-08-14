@@ -8,6 +8,7 @@ export default function DebugProduction() {
   const [authResults, setAuthResults] = useState(null)
   const [dbResults, setDbResults] = useState(null)
   const [emailResults, setEmailResults] = useState(null)
+  const [environmentResults, setEnvironmentResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [testEmail, setTestEmail] = useState('modiqube@gmail.com')
@@ -69,12 +70,25 @@ export default function DebugProduction() {
     setEmailLoading(false)
   }
 
+  const runEnvironmentDebugTest = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/debug/environment')
+      const result = await response.json()
+      setEnvironmentResults(result)
+    } catch (error) {
+      setEnvironmentResults({ error: error.message })
+    }
+    setLoading(false)
+  }
+
   const runAllTests = async () => {
     setLoading(true)
     await Promise.all([
       runEnvironmentTest(),
       runAuthTest(), 
-      runDatabaseTest()
+      runDatabaseTest(),
+      runEnvironmentDebugTest()
     ])
     setLoading(false)
   }
@@ -137,6 +151,13 @@ export default function DebugProduction() {
                 className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 disabled:opacity-50"
               >
                 🗄️ Database Test
+              </button>
+              <button
+                onClick={runEnvironmentDebugTest}
+                disabled={loading}
+                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+              >
+                🌐 URL Debug
               </button>
             </div>
             
@@ -388,6 +409,77 @@ export default function DebugProduction() {
             </div>
           )}
 
+          {/* Environment Debug Results */}
+          {environmentResults && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">🌐 Environment URL Debug</h2>
+              
+              {environmentResults.summary && (
+                <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+                  <h3 className="font-semibold text-blue-800 mb-2">URL Configuration Status</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Site URL Configured:</strong> 
+                      <span className={environmentResults.summary.siteUrlConfigured ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {environmentResults.summary.siteUrlConfigured ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Using Fallback:</strong> 
+                      <span className={environmentResults.summary.usingFallback ? 'text-red-600 ml-2' : 'text-green-600 ml-2'}>
+                        {environmentResults.summary.usingFallback ? '⚠️ Yes (BAD)' : '✅ No (GOOD)'}
+                      </span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <strong>Resolved URL:</strong> 
+                      <code className="bg-gray-100 px-2 py-1 rounded ml-2">{environmentResults.summary.resolvedUrl}</code>
+                    </div>
+                    <div>
+                      <strong>Platform:</strong> 
+                      <span className="ml-2">{environmentResults.summary.platform}</span>
+                    </div>
+                    <div>
+                      <strong>Environment:</strong> 
+                      <span className="ml-2">{environmentResults.summary.isProduction ? 'Production' : 'Development'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {environmentResults.environment?.siteUrlConfig && (
+                <div className="bg-gray-50 border rounded p-4">
+                  <h4 className="font-medium mb-2">Site URL Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Environment Variable Set:</span>
+                      <span className={environmentResults.environment.siteUrlConfig.exists ? 'text-green-600' : 'text-red-600'}>
+                        {environmentResults.environment.siteUrlConfig.exists ? '✅' : '❌'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Uses HTTPS:</span>
+                      <span className={environmentResults.environment.siteUrlConfig.startsWithHttps ? 'text-green-600' : 'text-red-600'}>
+                        {environmentResults.environment.siteUrlConfig.startsWithHttps ? '✅' : '❌'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Contains MJK Prints Domain:</span>
+                      <span className={environmentResults.environment.siteUrlConfig.containsMjkprints ? 'text-green-600' : 'text-red-600'}>
+                        {environmentResults.environment.siteUrlConfig.containsMjkprints ? '✅' : '❌'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Contains Localhost (BAD in prod):</span>
+                      <span className={environmentResults.environment.siteUrlConfig.containsLocalhost ? 'text-red-600' : 'text-green-600'}>
+                        {environmentResults.environment.siteUrlConfig.containsLocalhost ? '❌ Yes' : '✅ No'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Email Test Results */}
           {emailResults && (
             <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -450,6 +542,14 @@ export default function DebugProduction() {
                   <summary className="cursor-pointer font-medium">Email Test Results</summary>
                   <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
                     {JSON.stringify(emailResults, null, 2)}
+                  </pre>
+                </details>
+              )}
+              {environmentResults && (
+                <details className="border rounded p-2">
+                  <summary className="cursor-pointer font-medium">Environment URL Debug Results</summary>
+                  <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
+                    {JSON.stringify(environmentResults, null, 2)}
                   </pre>
                 </details>
               )}
