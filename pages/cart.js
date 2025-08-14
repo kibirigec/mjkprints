@@ -16,6 +16,8 @@ export default function CartPage() {
   const [email, setEmail] = useState('')
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const [paypalLoading, setPaypalLoading] = useState(false)
+  const [paypalError, setPaypalError] = useState(null)
 
   // Auto-show email form when coming from "Buy Now"
   useEffect(() => {
@@ -127,8 +129,57 @@ export default function CartPage() {
 
   const handlePayPalError = (error) => {
     console.error('❌ PayPal payment error:', error)
+    setPaypalError(error.message || 'PayPal payment failed')
     alert(`Payment failed: ${error.message || 'Please try again.'}`)
     setIsCheckingOut(false)
+  }
+
+  // Fallback checkout function for when PayPal fails
+  const handleFallbackCheckout = async () => {
+    // Validate email
+    const emailValidationError = validateEmail(email)
+    if (emailValidationError) {
+      setEmailError(emailValidationError)
+      return
+    }
+
+    setIsCheckingOut(true)
+    
+    try {
+      const response = await fetch('/api/checkout/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: cart,
+          email: email,
+          billingDetails: {
+            email: email,
+            name: 'Guest Customer'
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      const responseData = await response.json()
+      const { approvalUrl, paypalOrderId } = responseData
+
+      if (approvalUrl) {
+        // Redirect to PayPal approval URL
+        window.location.href = approvalUrl
+      } else {
+        throw new Error('PayPal approval URL not found')
+      }
+    } catch (error) {
+      console.error('❌ Fallback checkout error:', error)
+      alert(`Checkout failed: ${error.message || 'Please try again.'}`)
+    } finally {
+      setIsCheckingOut(false)
+    }
   }
 
   return (
@@ -276,29 +327,87 @@ export default function CartPage() {
                   {/* PayPal Buttons */}
                   <div className="mb-4">
                     {email && !emailError ? (
-                      <PayPalScriptProvider 
-                        options={{ 
-                          clientId: "ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa",
-                          currency: "USD"
-                        }}
-                      >
-                        <PayPalButtons
-                          disabled={isCheckingOut || !!emailError || !email}
-                          style={{
-                            layout: "vertical",
-                            color: "blue",
-                            shape: "rect",
-                            label: "pay"
+                      <div>
+                        <PayPalScriptProvider 
+                          options={{ 
+                            clientId: "ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa",
+                            currency: "USD"
                           }}
-                          createOrder={handlePayPalCreateOrder}
-                          onApprove={handlePayPalApprove}
-                          onError={handlePayPalError}
-                          onCancel={() => {
-                            console.log('PayPal payment cancelled')
-                            setIsCheckingOut(false)
+                          onLoadStart={() => {
+                            console.log('PayPal script loading started')
+                            setPaypalLoading(true)
                           }}
-                        />
-                      </PayPalScriptProvider>
+                          onLoad={() => {
+                            console.log('PayPal script loaded successfully')
+                            setPaypalLoading(false)
+                          }}
+                          onError={(error) => {
+                            console.error('PayPal script loading error:', error)
+                            setPaypalError('PayPal failed to load')
+                            setPaypalLoading(false)
+                          }}
+                        >
+                          <PayPalButtons
+                            disabled={isCheckingOut || !!emailError || !email}
+                            style={{
+                              layout: "vertical",
+                              color: "blue",
+                              shape: "rect",
+                              label: "pay"
+                            }}
+                            createOrder={handlePayPalCreateOrder}
+                            onApprove={handlePayPalApprove}
+                            onError={handlePayPalError}
+                            onCancel={() => {
+                              console.log('PayPal payment cancelled')
+                              setIsCheckingOut(false)
+                            }}
+                          />
+                        </PayPalScriptProvider>
+                        
+                        {/* Fallback Checkout Button */}
+                        {(paypalError || paypalLoading) && (
+                          <div className="mt-4">
+                            {paypalLoading && (
+                              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                <div className="flex items-center justify-center space-x-2">
+                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                  <span className="text-blue-700">Loading PayPal...</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {paypalError && (
+                              <div className="space-y-3">
+                                <div className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                  <p className="text-yellow-800 text-sm">
+                                    PayPal buttons not loading? Use the fallback checkout below.
+                                  </p>
+                                </div>
+                                
+                                <button
+                                  onClick={handleFallbackCheckout}
+                                  disabled={isCheckingOut || !!emailError || !email}
+                                  className={`w-full px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                                    isCheckingOut || !!emailError || !email
+                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
+                                  }`}
+                                >
+                                  {isCheckingOut ? (
+                                    <div className="flex items-center justify-center space-x-2">
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                      <span>Processing...</span>
+                                    </div>
+                                  ) : (
+                                    'Continue with PayPal Checkout'
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <p className="text-sm text-gray-600">
