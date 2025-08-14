@@ -13,6 +13,7 @@
     "test:pdf": "node test-pdf-workflow.js",
     "paypal:test": "node scripts/test-paypal.mjs",
     "paypal:webhook:test": "node scripts/test-paypal-webhook.js",
+    "paypal:webhook:test:production": "node scripts/test-paypal-webhook-production.mjs",
     "test:checkout": "node scripts/test-checkout.js",
     "test:system": "node scripts/test-checkout.js"
   },

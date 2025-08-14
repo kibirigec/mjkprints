@@ -278,7 +278,7 @@ export default function CartPage() {
                     {email && !emailError ? (
                       <PayPalScriptProvider 
                         options={{ 
-                          clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID,
+                          clientId: "ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa",
                           currency: "USD"
                         }}
                       >

@@ -146,22 +146,23 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
   }
 
   // Buy now handler (adds to cart and redirects to checkout)
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     setIsLoading(true)
     
     try {
       // Add item to cart
       addToCart(normalizedProduct, 1)
       
-      // Close modal and redirect to cart with email form
+      // Close modal first
       onClose()
       
       // Navigate to cart page with buy_now parameter to auto-show email form
-      router.push('/cart?buy_now=true')
+      await router.push('/cart?buy_now=true')
       
     } catch (error) {
       console.error('Add to cart error:', error)
       alert('Failed to add item to cart. Please try again.')
+    } finally {
       setIsLoading(false)
     }
   }
