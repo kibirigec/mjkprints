@@ -144,7 +144,17 @@ export default function SuccessPage() {
                   {order.order_items && order.order_items.length > 0 && (
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-primary">Your Digital Downloads</h3>
-                      {order.order_items.map((item) => (
+                      {order.order_items.map((item) => {
+                        // Debug logging (remove in production)
+                        console.log('Order item debug:', {
+                          itemId: item.id,
+                          hasProducts: !!item.products,
+                          imageUrl: item.products?.image,
+                          imageExists: !!item.products?.image,
+                          inErrorState: imageErrors.has(item.id)
+                        })
+                        
+                        return (
                         <div key={item.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
                           <div className="w-16 h-16 relative bg-gray-200 rounded-lg overflow-hidden">
                             {item.products?.image && !imageErrors.has(item.id) ? (
@@ -154,7 +164,11 @@ export default function SuccessPage() {
                                 fill
                                 sizes="64px"
                                 className="object-cover"
-                                onError={() => handleImageError(item.id)}
+                                onError={() => {
+                                  console.log('Image load error for:', item.products.image)
+                                  handleImageError(item.id)
+                                }}
+                                onLoad={() => console.log('Image loaded successfully:', item.products.image)}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -172,7 +186,8 @@ export default function SuccessPage() {
                             <p className="text-sm font-semibold">${item.total_price}</p>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
