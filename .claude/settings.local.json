@@ -60,7 +60,10 @@
       "Bash(npx eslint:*)",
       "Bash(NODE_ENV=development node test-database-query.js)",
       "Bash(npx dotenv -e .env.local:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(npm run paypal:test:*)",
+      "Bash(PAYPAL_CLIENT_ID=ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa PAYPAL_CLIENT_SECRET=ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa PAYPAL_ENVIRONMENT=sandbox node scripts/test-paypal.mjs)",
+      "Bash(npm run paypal:webhook:test:*)"
     ],
     "deny": []
   }

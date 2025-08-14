@@ -7,7 +7,7 @@ import { config } from 'dotenv'
 import { createPayPalOrder, isPayPalAvailable } from '../lib/paypal.js'
 
 // Load environment variables
-config()
+config({ path: '.env.local' })
 
 async function testPayPalIntegration() {
   console.log('🧪 Testing PayPal Integration...\n')
