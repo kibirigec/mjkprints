@@ -1,4 +1,4 @@
-import { createCheckoutSession } from '../../../lib/stripe'
+import { createPayPalOrder } from '../../../lib/paypal'
 import { createOrder, createOrderItems } from '../../../lib/supabase'
 
 export default async function handler(req, res) {
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
         status: 'pending', // Will be updated after successful payment
         billing_details: billingDetails,
         metadata: {
-          source: 'stripe_checkout',
+          source: 'paypal_checkout',
           userAgent: req.headers['user-agent']
         }
       })
@@ -61,8 +61,8 @@ export default async function handler(req, res) {
       await createOrderItems(order.id, orderItemsData)
       console.log('[CHECKOUT] Order items created successfully')
 
-      // Create Stripe checkout session
-      console.log('[CHECKOUT] Creating Stripe checkout session...')
+      // Create PayPal order
+      console.log('[CHECKOUT] Creating PayPal order...')
       
       // Enhanced URL resolution with production failsafes
       let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'
@@ -112,30 +112,38 @@ export default async function handler(req, res) {
         vercelUrl: process.env.VERCEL_URL
       })
       
-      const session = await createCheckoutSession({
+      const paypalOrder = await createPayPalOrder({
         items,
         email,
         orderId: order.id,
-        successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
+        successUrl: `${baseUrl}/success?paypal_order_id={order_id}&order_id=${order.id}`,
         cancelUrl: `${baseUrl}/cart?canceled=true`
       })
       
+      // Find approval URL from PayPal links
+      const approvalUrl = paypalOrder.links?.find(link => link.rel === 'approve')?.href
+      
+      if (!approvalUrl) {
+        throw new Error('PayPal approval URL not found')
+      }
+      
       // Debug logging for generated URLs
-      console.log('[CHECKOUT] Generated Stripe URLs:', {
-        successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
+      console.log('[CHECKOUT] Generated PayPal URLs:', {
+        successUrl: `${baseUrl}/success?paypal_order_id={order_id}&order_id=${order.id}`,
         cancelUrl: `${baseUrl}/cart?canceled=true`,
-        sessionId: session.id
+        paypalOrderId: paypalOrder.id,
+        approvalUrl
       })
-      console.log('[CHECKOUT] Stripe session created successfully:', session.id)
+      console.log('[CHECKOUT] PayPal order created successfully:', paypalOrder.id)
 
-      // Update order with Stripe session ID
+      // Update order with PayPal order ID
       // Note: You might want to add this function to your supabase.js file
-      // await updateOrderStripeSession(order.id, session.id)
+      // await updateOrderPayPalSession(order.id, paypalOrder.id)
 
       console.log('[CHECKOUT] Checkout session completed successfully')
       res.status(200).json({
-        sessionId: session.id,
-        sessionUrl: session.url,
+        paypalOrderId: paypalOrder.id,
+        approvalUrl: approvalUrl,
         orderId: order.id
       })
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { loadStripe } from '@stripe/stripe-js'
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,9 +8,6 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { getProductImage } from '../lib/supabase'
-
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 export default function CartPage() {
   const router = useRouter()
@@ -46,22 +43,19 @@ export default function CartPage() {
     setEmailError(error)
   }
 
-  const handleCheckout = async () => {
-    console.log('🛒 Starting checkout process...', { email, cartItems: cart.length })
+  const handlePayPalCreateOrder = async () => {
+    console.log('🛒 Starting PayPal order creation...', { email, cartItems: cart.length })
     
     // Validate email
     const emailValidationError = validateEmail(email)
     if (emailValidationError) {
       console.log('❌ Email validation failed:', email)
       setEmailError(emailValidationError)
-      return
+      throw new Error(emailValidationError)
     }
 
-    setIsCheckingOut(true)
-    
     try {
-      console.log('📡 Creating checkout session...')
-      // Create Stripe checkout session
+      console.log('📡 Creating PayPal checkout session...')
       const response = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: {
@@ -88,36 +82,53 @@ export default function CartPage() {
       const responseData = await response.json()
       console.log('📡 Checkout API response data:', responseData)
       
-      const { sessionId, error } = responseData
+      const { paypalOrderId, error } = responseData
 
-      if (sessionId) {
-        console.log('🏪 Redirecting to Stripe checkout...', sessionId)
-        // Redirect to Stripe Checkout
-        const stripe = await stripePromise
-        
-        if (!stripe) {
-          console.error('❌ Failed to load Stripe')
-          throw new Error('Failed to load Stripe')
-        }
-        
-        const { error: stripeError } = await stripe.redirectToCheckout({
-          sessionId: sessionId,
-        })
-
-        if (stripeError) {
-          console.error('❌ Stripe redirect error:', stripeError)
-          alert(`Checkout failed: ${stripeError.message || 'Please try again.'}`)
-        }
+      if (paypalOrderId) {
+        console.log('🏪 PayPal order created successfully:', paypalOrderId)
+        return paypalOrderId
       } else {
-        console.error('❌ No session ID received:', error)
-        alert(error || 'Checkout failed. Please try again.')
+        console.error('❌ PayPal order creation failed:', error)
+        throw new Error(error || 'Failed to create PayPal order')
       }
     } catch (error) {
-      console.error('❌ Checkout error:', error)
-      alert(`Checkout failed: ${error.message || 'Please check your connection and try again.'}`)
+      console.error('❌ PayPal order creation error:', error)
+      throw new Error(error.message || 'Failed to create PayPal order')
+    }
+  }
+
+  const handlePayPalApprove = async (data, actions) => {
+    console.log('💰 PayPal payment approved:', data.orderID)
+    setIsCheckingOut(true)
+    
+    try {
+      // Capture the payment
+      const details = await actions.order.capture()
+      console.log('💳 PayPal payment captured:', details)
+      
+      // Find the order ID from our database
+      const orderId = details.purchase_units?.[0]?.reference_id
+      
+      if (orderId) {
+        console.log('✅ Payment successful, redirecting to success page')
+        // Clear the cart and redirect to success page
+        clearCart()
+        router.push(`/success?paypal_order_id=${data.orderID}&order_id=${orderId}`)
+      } else {
+        throw new Error('Order ID not found in payment details')
+      }
+    } catch (error) {
+      console.error('❌ Error processing payment approval:', error)
+      alert(`Payment processing failed: ${error.message || 'Please contact support.'}`)
     } finally {
       setIsCheckingOut(false)
     }
+  }
+
+  const handlePayPalError = (error) => {
+    console.error('❌ PayPal payment error:', error)
+    alert(`Payment failed: ${error.message || 'Please try again.'}`)
+    setIsCheckingOut(false)
   }
 
   return (
@@ -262,24 +273,40 @@ export default function CartPage() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleCheckout}
-                    disabled={isCheckingOut || !!emailError || !email}
-                    className={`w-full mb-4 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
-                      isCheckingOut || !!emailError || !email
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg'
-                    }`}
-                  >
-                    {isCheckingOut ? (
-                      <div className="flex items-center justify-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Processing...</span>
-                      </div>
+                  {/* PayPal Buttons */}
+                  <div className="mb-4">
+                    {email && !emailError ? (
+                      <PayPalScriptProvider 
+                        options={{ 
+                          clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID,
+                          currency: "USD"
+                        }}
+                      >
+                        <PayPalButtons
+                          disabled={isCheckingOut || !!emailError || !email}
+                          style={{
+                            layout: "vertical",
+                            color: "blue",
+                            shape: "rect",
+                            label: "pay"
+                          }}
+                          createOrder={handlePayPalCreateOrder}
+                          onApprove={handlePayPalApprove}
+                          onError={handlePayPalError}
+                          onCancel={() => {
+                            console.log('PayPal payment cancelled')
+                            setIsCheckingOut(false)
+                          }}
+                        />
+                      </PayPalScriptProvider>
                     ) : (
-                      'Proceed to Checkout'
+                      <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p className="text-sm text-gray-600">
+                          Please enter your email address to continue with PayPal checkout
+                        </p>
+                      </div>
                     )}
-                  </button>
+                  </div>
 
                   <Link href="/" className="block text-center text-secondary hover:text-secondary/80 transition-colors">
                     Continue Shopping

@@ -20,24 +20,24 @@ MJK Prints is a **production-ready digital art marketplace** built with Next.js 
 ### Core Architecture
 - **Frontend**: React 18 + Tailwind CSS with custom animations
 - **Backend**: Next.js API Routes + Supabase PostgreSQL 
-- **Payments**: Stripe Checkout + Webhooks
+- **Payments**: PayPal Checkout + Webhooks
 - **Email**: MailerSend with HTML templates and file attachments
 - **State**: React Context for cart + localStorage persistence
 
 ### Payment Flow Architecture
 ```
-Cart → Email Collection → Stripe Checkout → Webhook → Order Creation → Email Delivery
+Cart → Email Collection → PayPal Checkout → Webhook → Order Creation → Email Delivery
 ```
 
 1. User adds products to cart (CartContext + localStorage)
 2. Checkout collects email via `/api/checkout/session`
-3. Stripe processes payment and triggers webhook `/api/webhooks/stripe`
+3. PayPal processes payment and triggers webhook `/api/webhooks/paypal`
 4. Webhook creates order, download links, and sends confirmation email
 5. User receives email with download links (7-day expiration)
 
 ### Key Service Files
 - `/lib/supabase.js` - Database operations (products, orders, downloads, customers)
-- `/lib/stripe.js` - Payment processing and webhook verification
+- `/lib/paypal.js` - PayPal payment processing and webhook verification
 - `/lib/email.js` - MailerSend email templates, attachments, and sending
 - `/context/CartContext.js` - Shopping cart state management
 
@@ -46,7 +46,7 @@ Cart → Email Collection → Stripe Checkout → Webhook → Order Creation →
 Use these specialized agents for specific development tasks:
 
 ### Payment & E-commerce
-- **`payment-integration`** - Stripe webhook issues, new payment methods, subscription features
+- **`payment-integration`** - PayPal webhook issues, new payment methods, subscription features
 - **`backend-architect`** - API route design, database schema changes, order processing logic
 
 ### Frontend Development  
@@ -74,10 +74,11 @@ Use these specialized agents for specific development tasks:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Stripe (Required for payments)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# PayPal (Required for payments)
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_paypal_client_id_here
+PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
+PAYPAL_WEBHOOK_ID=your_paypal_webhook_id_here
+PAYPAL_ENVIRONMENT=sandbox
 
 # Site Configuration
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -98,8 +99,8 @@ MAILERSEND_FROM_NAME=MJK Prints
 
 ### Webhook Security
 ```javascript
-// Always verify webhook signatures in /api/webhooks/stripe
-const event = verifyWebhookSignature(buf, signature, endpointSecret)
+// Always verify webhook signatures in /api/webhooks/paypal
+const isValid = await verifyPayPalWebhookSignature(payload, headers)
 ```
 
 ### Database Operations
@@ -139,7 +140,7 @@ const { cart, addToCart } = useCart()
 
 ### Core Tables
 - **products** - Digital art listings with metadata
-- **orders** - Purchase records with Stripe integration
+- **orders** - Purchase records with PayPal integration
 - **order_items** - Individual products within orders
 - **customers** - Customer records (optional, supports guest checkout)
 - **downloads** - Time-limited download links with usage tracking
@@ -153,10 +154,10 @@ const { cart, addToCart } = useCart()
 ## Common Development Scenarios
 
 ### Adding New Payment Features
-1. Use `payment-integration` agent for Stripe integration guidance
-2. Update `/lib/stripe.js` for new payment methods
-3. Modify webhook handler in `/api/webhooks/stripe.js`
-4. Test with Stripe CLI: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+1. Use `payment-integration` agent for PayPal integration guidance
+2. Update `/lib/paypal.js` for new payment methods
+3. Modify webhook handler in `/api/webhooks/paypal.js`
+4. Test with PayPal Developer Console webhook simulator
 
 ### Modifying Product Display
 1. Use `frontend-developer` agent for component changes
@@ -181,7 +182,7 @@ const { cart, addToCart } = useCart()
 
 - [ ] Environment variables configured in deployment platform
 - [ ] Supabase production database schema deployed
-- [ ] Stripe webhook endpoint configured with production URL
+- [ ] PayPal webhook endpoint configured with production URL
 - [ ] MailerSend domain verified and sender email configured
 - [ ] Domain configured and SSL enabled
 - [ ] Test complete purchase flow end-to-end
@@ -192,9 +193,10 @@ const { cart, addToCart } = useCart()
 - Check environment variables are set correctly
 - Verify Supabase project is active and database schema is deployed
 
-**"Stripe webhook signature verification failed"**
-- Ensure STRIPE_WEBHOOK_SECRET matches webhook endpoint secret
+**"PayPal webhook signature verification failed"**
+- Ensure PAYPAL_WEBHOOK_ID matches webhook endpoint ID in PayPal Developer Console
 - Check webhook endpoint URL is correct (must be accessible from internet)
+- Verify PayPal environment (sandbox vs live) matches configuration
 
 **"Email delivery failed"**
 - Verify MAILERSEND_API_KEY is valid
