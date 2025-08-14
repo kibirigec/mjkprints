@@ -9,8 +9,11 @@ export default function DebugProduction() {
   const [dbResults, setDbResults] = useState(null)
   const [emailResults, setEmailResults] = useState(null)
   const [environmentResults, setEnvironmentResults] = useState(null)
+  const [webhookResults, setWebhookResults] = useState(null)
+  const [webhookTestResults, setWebhookTestResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
+  const [webhookTestLoading, setWebhookTestLoading] = useState(false)
   const [testEmail, setTestEmail] = useState('modiqube@gmail.com')
 
   const runEnvironmentTest = async () => {
@@ -82,13 +85,46 @@ export default function DebugProduction() {
     setLoading(false)
   }
 
+  const runWebhookMonitorTest = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/debug/webhook-monitor')
+      const result = await response.json()
+      setWebhookResults(result)
+    } catch (error) {
+      setWebhookResults({ error: error.message })
+    }
+    setLoading(false)
+  }
+
+  const runWebhookTest = async () => {
+    setWebhookTestLoading(true)
+    try {
+      const response = await fetch('/api/debug/webhook-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          testType: 'endpoint-accessibility'
+        })
+      })
+      const result = await response.json()
+      setWebhookTestResults(result)
+    } catch (error) {
+      setWebhookTestResults({ error: error.message, success: false })
+    }
+    setWebhookTestLoading(false)
+  }
+
   const runAllTests = async () => {
     setLoading(true)
     await Promise.all([
       runEnvironmentTest(),
       runAuthTest(), 
       runDatabaseTest(),
-      runEnvironmentDebugTest()
+      runEnvironmentDebugTest(),
+      runWebhookMonitorTest()
     ])
     setLoading(false)
   }
@@ -159,12 +195,19 @@ export default function DebugProduction() {
               >
                 🌐 URL Debug
               </button>
+              <button
+                onClick={runWebhookMonitorTest}
+                disabled={loading}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                🔌 Webhook Check
+              </button>
             </div>
             
             {/* Email Test Section */}
             <div className="bg-gray-50 rounded p-4">
               <h3 className="font-semibold mb-3">📧 Email System Test</h3>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 mb-3">
                 <input
                   type="email"
                   value={testEmail}
@@ -180,8 +223,17 @@ export default function DebugProduction() {
                   {emailLoading ? '⏳ Sending...' : '📧 Send Test Email'}
                 </button>
               </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={runWebhookTest}
+                  disabled={webhookTestLoading}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {webhookTestLoading ? '⏳ Testing...' : '🔌 Test Webhook Delivery'}
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mt-2">
-                Sends a sample order confirmation email to test MailerSend integration
+                Email test: Sends sample order confirmation • Webhook test: Checks if webhooks can reach the server
               </p>
             </div>
             
@@ -409,6 +461,104 @@ export default function DebugProduction() {
             </div>
           )}
 
+          {/* Webhook Monitor Results */}
+          {webhookResults && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">🔌 Webhook Configuration Check</h2>
+              
+              {webhookResults.summary && (
+                <div className="bg-red-50 border border-red-200 rounded p-4 mb-4">
+                  <h3 className="font-semibold text-red-800 mb-2">Webhook Status Overview</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Webhook Configured:</strong> 
+                      <span className={webhookResults.summary.webhookConfigured ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {webhookResults.summary.webhookConfigured ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Stripe Keys Valid:</strong> 
+                      <span className={webhookResults.summary.stripeKeysValid ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {webhookResults.summary.stripeKeysValid ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Email Configured:</strong> 
+                      <span className={webhookResults.summary.emailConfigured ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {webhookResults.summary.emailConfigured ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Production Ready:</strong> 
+                      <span className={webhookResults.summary.productionReady ? 'text-green-600 ml-2' : 'text-yellow-600 ml-2'}>
+                        {webhookResults.summary.productionReady ? '✅ Yes' : '⚠️ Test Mode'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {webhookResults.summary.potentialIssues?.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium text-red-800 mb-2">⚠️ Potential Issues:</h4>
+                      <ul className="text-sm text-red-700 list-disc list-inside">
+                        {webhookResults.summary.potentialIssues.map((issue, index) => (
+                          <li key={index}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {webhookResults.webhook && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 border rounded p-4">
+                    <h4 className="font-medium mb-2">Webhook Configuration</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Secret Format:</span>
+                        <span className={webhookResults.webhook.configuration.endpointSecret.format === 'Valid' ? 'text-green-600' : 'text-red-600'}>
+                          {webhookResults.webhook.configuration.endpointSecret.format}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Secret Preview:</span>
+                        <code className="text-xs bg-gray-100 px-1 rounded">{webhookResults.webhook.configuration.endpointSecret.preview}</code>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Expected Endpoint:</span>
+                        <code className="text-xs bg-gray-100 px-1 rounded break-all">{webhookResults.webhook.webhookEndpoint.expectedUrl}</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 border rounded p-4">
+                    <h4 className="font-medium mb-2">Stripe Keys</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Secret Key:</span>
+                        <span className={webhookResults.webhook.configuration.stripeKeys.secretKey.includes('Test') ? 'text-yellow-600' : 'text-green-600'}>
+                          {webhookResults.webhook.configuration.stripeKeys.secretKey}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Publishable Key:</span>
+                        <span className={webhookResults.webhook.configuration.stripeKeys.publishableKey.includes('Test') ? 'text-yellow-600' : 'text-green-600'}>
+                          {webhookResults.webhook.configuration.stripeKeys.publishableKey}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Environment:</span>
+                        <span className={webhookResults.webhook.environment.isProduction ? 'text-green-600' : 'text-yellow-600'}>
+                          {webhookResults.webhook.environment.isProduction ? 'Production' : 'Development'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Environment Debug Results */}
           {environmentResults && (
             <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -475,6 +625,61 @@ export default function DebugProduction() {
                       </span>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Webhook Test Results */}
+          {webhookTestResults && (
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">🔌 Webhook Delivery Test</h2>
+              
+              {webhookTestResults.success ? (
+                <div className="bg-green-50 border border-green-200 rounded p-4 mb-4">
+                  <h3 className="font-semibold text-green-800 mb-2">✅ Webhook Test Results</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <strong>Endpoint Accessible:</strong> 
+                      <span className={webhookTestResults.summary?.webhookAccessible ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {webhookTestResults.summary?.webhookAccessible ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Configuration Valid:</strong> 
+                      <span className={webhookTestResults.summary?.configurationValid ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {webhookTestResults.summary?.configurationValid ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Database Connected:</strong> 
+                      <span className={webhookTestResults.summary?.databaseConnected ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                        {webhookTestResults.summary?.databaseConnected ? '✅ Yes' : '❌ No'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm">
+                    <strong>Ready for Webhooks:</strong> 
+                    <span className={webhookTestResults.summary?.readyForWebhooks ? 'text-green-600 ml-2' : 'text-red-600 ml-2'}>
+                      {webhookTestResults.summary?.readyForWebhooks ? '✅ System Ready' : '❌ Issues Found'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-50 border border-red-200 rounded p-4 mb-4">
+                  <h3 className="font-semibold text-red-800 mb-2">❌ Webhook Test Failed</h3>
+                  <p className="text-sm text-red-700">{webhookTestResults.error}</p>
+                </div>
+              )}
+
+              {webhookTestResults.recommendations?.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+                  <h4 className="font-medium text-yellow-800 mb-2">🔧 Recommendations:</h4>
+                  <ul className="text-sm text-yellow-700 list-disc list-inside">
+                    {webhookTestResults.recommendations.map((rec, index) => (
+                      <li key={index}>{rec}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
@@ -550,6 +755,22 @@ export default function DebugProduction() {
                   <summary className="cursor-pointer font-medium">Environment URL Debug Results</summary>
                   <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
                     {JSON.stringify(environmentResults, null, 2)}
+                  </pre>
+                </details>
+              )}
+              {webhookResults && (
+                <details className="border rounded p-2">
+                  <summary className="cursor-pointer font-medium">Webhook Monitor Results</summary>
+                  <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
+                    {JSON.stringify(webhookResults, null, 2)}
+                  </pre>
+                </details>
+              )}
+              {webhookTestResults && (
+                <details className="border rounded p-2">
+                  <summary className="cursor-pointer font-medium">Webhook Test Results</summary>
+                  <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto mt-2">
+                    {JSON.stringify(webhookTestResults, null, 2)}
                   </pre>
                 </details>
               )}
