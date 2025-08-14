@@ -1,14 +1,21 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Footer() {
   return (
     <footer className="bg-primary text-accent">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                <span className="text-primary font-bold text-lg">M</span>
+              <div className="relative w-8 h-8">
+                <Image
+                  src="/images/mjklogo.jpg"
+                  alt="MJK Prints Logo"
+                  fill
+                  className="object-contain"
+                  sizes="32px"
+                />
               </div>
               <span className="text-xl font-bold">MJK Prints</span>
             </Link>

@@ -155,8 +155,8 @@ export default function SuccessPage() {
                         })
                         
                         return (
-                        <div key={item.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                          <div className="w-16 h-16 relative bg-gray-200 rounded-lg overflow-hidden">
+                        <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="w-16 h-16 sm:w-16 sm:h-16 relative bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                             {item.products?.image && !imageErrors.has(item.id) ? (
                               <Image
                                 src={item.products.image}

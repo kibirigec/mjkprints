@@ -171,25 +171,25 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm"
       onClick={handleBackdropClick}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <div className="relative w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-[95vw] sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl max-h-[95vh] sm:max-h-[90vh] bg-white rounded-lg sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center justify-between p-2 sm:p-4 md:p-6 border-b border-gray-200">
+          <div className="flex items-center gap-1 sm:gap-4 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-secondary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-primary line-clamp-1">
+              <h2 className="text-sm sm:text-lg md:text-xl font-bold text-primary line-clamp-1">
                 {normalizedProduct.title}
               </h2>
-              <div className="flex items-center gap-3 text-sm text-gray-600">
+              <div className="flex items-center gap-1 sm:gap-3 text-xs sm:text-sm text-gray-600">
                 <span className="font-medium">${normalizedProduct.price}</span>
                 {hasPDF && pageCount > 0 && (
                   <>
@@ -204,16 +204,16 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
           </div>
 
           {/* Share and Close Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             {/* Share Button */}
             <div className="relative">
               <button
                 onClick={handleShareLink}
-                className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
                 aria-label="Share product"
                 title="Copy shareable link"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
               </button>
@@ -229,22 +229,22 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+              className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
               aria-label="Close preview"
             >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row max-h-[calc(90vh-80px)]">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
           {/* Preview Section */}
           <div className="flex-1 relative bg-gray-50">
 
             {/* Main Preview */}
-            <div className="relative w-full h-full min-h-[400px] lg:min-h-[600px] p-6 preview-protection">
+            <div className="relative w-full h-full min-h-[200px] sm:min-h-[350px] md:min-h-[400px] lg:min-h-[500px] p-2 sm:p-4 md:p-6 preview-protection">
               {showPDF ? (
                 <div className="relative w-full h-full">
                   <PDFViewer
@@ -281,17 +281,17 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                 </div>
               ) : showImage ? (
                 <div className="relative w-full h-full flex items-center justify-center">
-                  <div className="relative max-w-full max-h-full">
+                  <div className="relative w-full h-full max-w-[600px] max-h-[500px] min-h-[200px]">
                     <Image
                       src={displayImage}
                       alt={normalizedProduct.title}
-                      width={800}
-                      height={600}
+                      fill
                       className={`object-contain transition-transform duration-300 ${
                         isZoomed ? 'scale-110' : 'scale-100'
                       }`}
                       onClick={() => setIsZoomed(!isZoomed)}
                       style={{ cursor: 'zoom-in' }}
+                      sizes="600px"
                     />
                     
                     {/* Image Watermark Overlay */}
@@ -336,11 +336,11 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
           </div>
 
           {/* Purchase Panel */}
-          <div className="w-full lg:w-96 bg-white border-l border-gray-200">
-            <div className="p-6 space-y-6">
+          <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200">
+            <div className="p-3 sm:p-6 space-y-3 sm:space-y-6">
               {/* Product Info */}
               <div>
-                <h3 className="text-lg font-bold text-primary mb-2">
+                <h3 className="text-lg font-bold text-primary mb-1 sm:mb-2">
                   {normalizedProduct.title}
                 </h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -349,14 +349,14 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
               </div>
 
               {/* Features */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+              <div className="bg-green-50 rounded-lg p-3 sm:p-4">
+                <h4 className="font-semibold text-green-800 mb-2 sm:mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   What You Get
                 </h4>
-                <ul className="space-y-2 text-sm text-green-700">
+                <ul className="space-y-1 sm:space-y-2 text-sm text-green-700">
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
                     High-resolution digital file
@@ -389,22 +389,22 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
               </div>
 
               {/* Pricing */}
-              <div className="text-center py-4 border-y border-gray-200">
+              <div className="text-center py-3 sm:py-4 border-y border-gray-200">
                 <div className="text-3xl font-bold text-primary">
                   ${normalizedProduct.price}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="text-sm text-gray-600 mt-0.5 sm:mt-1">
                   One-time purchase • No subscription
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {/* Buy Now Button */}
                 <button
                   onClick={handleBuyNow}
                   disabled={isLoading}
-                  className="w-full bg-primary hover:bg-primary-light text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:opacity-50"
+                  className="w-full bg-primary hover:bg-primary-light text-white font-semibold py-3 sm:py-4 px-4 sm:px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:opacity-50"
                 >
                   {isLoading ? (
                     <>
@@ -425,7 +425,7 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={isAddingToCart}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {isAddingToCart ? (
                     <>
@@ -444,7 +444,7 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
               </div>
 
               {/* Security Badges */}
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-3 sm:pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
                   <div className="flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

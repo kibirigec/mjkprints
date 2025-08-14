@@ -46,7 +46,6 @@ export default function Home({ featuredProducts }) {
       <Head>
         <title>MJK Prints - Unique Digital Art Prints</title>
         <meta name="description" content="Discover unique digital prints from independent designers. High-quality, instant downloads for your creative projects." />
-        <link rel="preload" as="image" href="/images/pln4.jpg" />
         <link rel="dns-prefetch" href="//images.unsplash.com" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="" />
       </Head>
@@ -57,49 +56,61 @@ export default function Home({ featuredProducts }) {
         <main>
           {/* Hero Section - Erin Condren Style */}
           <section className="py-8 md:py-16" style={{backgroundColor: '#F6F1E8'}}>
-            {/* Mobile and Tablet: Stacked Layout */}
+            {/* Mobile and Tablet: Image with Text Overlay */}
             <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6">
-              <div className="text-center mb-8">
-                <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">NEW 2025-2026</p>
-                <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4 leading-tight">
-                  Best-Selling
-                  <span className="block text-secondary italic"> Digital Planners</span>
-                </h1>
-                
-                {/* Key Benefits for Mobile */}
-                <div className="flex flex-wrap justify-center gap-4 mb-6 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700">Organized for productivity</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700">Instant download</span>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
-                  className="inline-flex items-center px-8 py-3 bg-primary text-white font-bold text-sm uppercase tracking-wide hover:bg-primary-light transition-colors duration-200"
-                >
-                  SHOP NOW
-                </button>
-              </div>
-              
-              {/* Featured Background Image for Mobile/Tablet */}
-              <div className="relative h-[300px] md:h-[400px] overflow-hidden rounded-lg">
+              <div className="relative h-[400px] md:h-[500px] overflow-hidden rounded-lg">
+                {/* Background Image */}
                 <Image 
-                  src="/images/pln4.jpg"
+                  src="/images/formobile.webp"
                   alt="Digital Art Collection"
                   fill
                   className="object-cover"
                   priority
-                  sizes="100vw"
+                  sizes="(max-width: 1024px) 100vw, 0px"
                 />
+                
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-black/40"></div>
+                
+                {/* Text Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center px-4">
+                  <div className="bg-white/80 backdrop-blur-sm p-6 sm:p-8 w-full max-w-lg sm:max-w-xl text-center rounded-lg shadow-lg">
+                    <p className="text-xs sm:text-sm uppercase tracking-wide text-white mb-2">NEW 2025-2026</p>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary mb-2 leading-tight">
+                      Best-Selling
+                    </h1>
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold italic text-secondary mb-4 leading-tight">
+                      Digital Planners
+                    </h2>
+                    
+                    <button 
+                      onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
+                      className="inline-flex items-center px-6 sm:px-8 py-2 sm:py-3 bg-primary text-white font-bold text-xs sm:text-sm uppercase tracking-wide hover:bg-primary-light transition-colors duration-200 mb-4 rounded-md"
+                    >
+                      SHOP NOW
+                    </button>
+
+                    {/* Key Benefits - Simple List */}
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-700">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-green-500 font-bold">•</span>
+                        <span>Goal setting</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-green-500 font-bold">•</span>
+                        <span>Daily layouts</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-green-500 font-bold">•</span>
+                        <span>Organized productivity</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-green-500 font-bold">•</span>
+                        <span>Instant download</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -112,53 +123,53 @@ export default function Home({ featuredProducts }) {
                 fill
                 className="object-cover"
                 priority
-                sizes="100vw"
+                sizes="(min-width: 1024px) 100vw, 0px"
               />
 
                 {/* Text Overlay */}
-                <div className="absolute inset-y-0 right-8 flex items-center pointer-events-none z-10">
-                  <div className="bg-white/95 backdrop-blur-sm p-8 w-[585px] shadow-lg text-center">
-                    <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">NEW 2025-2026</p>
-                    <h1 className="text-4xl xl:text-5xl font-bold text-primary mb-2 leading-tight">
+                <div className="absolute inset-4 sm:inset-y-0 sm:right-8 flex items-center justify-center sm:justify-end pointer-events-none z-10">
+                  <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 lg:p-8 max-w-sm sm:max-w-md lg:max-w-lg xl:w-[585px] shadow-lg text-center rounded-lg sm:rounded-none">
+                    <p className="text-xs sm:text-sm uppercase tracking-wide text-gray-500 mb-2">NEW 2025-2026</p>
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-primary mb-2 leading-tight">
                       Best-Selling
                     </h1>
-                    <h2 className="text-4xl xl:text-5xl font-bold italic text-secondary mb-6 leading-tight">
+                    <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold italic text-secondary mb-4 sm:mb-6 leading-tight">
                       Digital Planners
                     </h2>
                     
                     {/* Shop Now Button */}
                     <button 
                       onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
-                      className="pointer-events-auto inline-flex items-center px-8 py-3 bg-primary text-white font-bold text-sm uppercase tracking-wide hover:bg-primary-light transition-colors duration-200 mb-6"
+                      className="pointer-events-auto inline-flex items-center px-6 sm:px-8 py-2 sm:py-3 bg-primary text-white font-bold text-xs sm:text-sm uppercase tracking-wide hover:bg-primary-light transition-colors duration-200 mb-4 sm:mb-6 rounded-md"
                     >
                       SHOP NOW
                     </button>
 
                     {/* Key Benefits - 2x2 Grid */}
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-6 gap-y-2 sm:gap-y-3">
                       <div className="flex items-start space-x-2">
                         <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-xs text-gray-700">Goal setting & tracking</span>
+                        <span className="text-xs sm:text-sm text-gray-700">Goal setting & tracking</span>
                       </div>
                       <div className="flex items-start space-x-2">
                         <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-xs text-gray-700">Daily & weekly layouts</span>
+                        <span className="text-xs sm:text-sm text-gray-700">Daily & weekly layouts</span>
                       </div>
                       <div className="flex items-start space-x-2">
                         <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-xs text-gray-700">Habit tracker included</span>
+                        <span className="text-xs sm:text-sm text-gray-700">Habit tracker included</span>
                       </div>
                       <div className="flex items-start space-x-2">
                         <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-xs text-gray-700">Print & use immediately</span>
+                        <span className="text-xs sm:text-sm text-gray-700">Print & use immediately</span>
                       </div>
                     </div>
                   </div>
@@ -172,10 +183,10 @@ export default function Home({ featuredProducts }) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-                  Browse All Artwork
+                  Browse All Digital Planners
                 </h2>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                  Discover unique digital art from our community of talented artists
+                Find what suits your needs from our collection of digital planners
                 </p>
               </div>
 

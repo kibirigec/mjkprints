@@ -561,11 +561,11 @@ Are you sure you want to permanently delete this ${fileType}?`
                                   </div>
                                   
                                   {/* Storage Path for debugging */}
-                                  <div className="text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded border">
-                                    <strong>Storage:</strong> {file.storage_path}
+                                  <div className="text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded border break-all">
+                                    <strong>Storage:</strong> <span className="break-words">{file.storage_path}</span>
                                   </div>
                                 </div>
-                                <div className="mt-3 flex space-x-2">
+                                <div className="mt-3 flex flex-wrap gap-2 sm:flex-nowrap sm:space-x-2">
                                   {file.processing_status === 'completed' && (
                                     <>
                                       <button 
@@ -574,7 +574,7 @@ Are you sure you want to permanently delete this ${fileType}?`
                                           const previewUrl = `${supabaseUrl}/storage/v1/object/public/mjk-prints-storage/${file.storage_path}`;
                                           window.open(previewUrl, '_blank');
                                         }}
-                                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                        className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50"
                                       >
                                         Preview
                                       </button>
@@ -589,7 +589,7 @@ Are you sure you want to permanently delete this ${fileType}?`
                                           link.click();
                                           document.body.removeChild(link);
                                         }}
-                                        className="text-xs text-green-600 hover:text-green-800 font-medium"
+                                        className="text-xs sm:text-sm text-green-600 hover:text-green-800 font-medium px-2 py-1 rounded hover:bg-green-50"
                                       >
                                         Download
                                       </button>

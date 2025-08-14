@@ -130,8 +130,8 @@ export default function CartPage() {
       <div className="min-h-screen bg-accent">
         <Header />
         
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-primary mb-8">Shopping Cart</h1>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-6 sm:mb-8">Shopping Cart</h1>
 
           {cart.length === 0 ? (
             <div className="text-center py-16">
@@ -147,67 +147,74 @@ export default function CartPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
               <div className="lg:col-span-2 space-y-4">
                 {cart.map((item) => (
-                  <div key={item.id} className="bg-white rounded-xl p-6 shadow-lg">
-                    <div className="flex items-center space-x-6">
-                      <div className="w-20 h-20 relative bg-gray-100 rounded-lg overflow-hidden">
-                        <Image
-                          src={getProductImage(item, 'medium')?.url || item.image || '/api/placeholder/300/300'}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
-                          onError={(e) => {
-                            e.target.src = '/api/placeholder/300/300'
-                          }}
-                        />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <Link href={`/product/${item.id}`}>
-                          <h3 className="text-lg font-semibold text-primary hover:text-primary/80 transition-colors">
-                            {item.title}
-                          </h3>
-                        </Link>
-                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-                          {item.description}
-                        </p>
-                        <p className="text-primary font-semibold text-lg mt-2">
-                          ${item.price}
-                        </p>
-                      </div>
-
-                      {/* Digital download indicator */}
-                      <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-lg">
-                        1× Digital Download
+                  <div key={item.id} className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                      {/* Mobile: Image and content row */}
+                      <div className="flex items-start space-x-4 w-full sm:w-auto sm:flex-shrink-0">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 relative bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={getProductImage(item, 'medium')?.url || item.image || '/api/placeholder/300/300'}
+                            alt={item.title}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 64px, 80px"
+                            onError={(e) => {
+                              e.target.src = '/api/placeholder/300/300'
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/product/${item.id}`}>
+                            <h3 className="text-base sm:text-lg font-semibold text-primary hover:text-primary/80 transition-colors line-clamp-2">
+                              {item.title}
+                            </h3>
+                          </Link>
+                          <p className="text-gray-600 text-sm mt-1 line-clamp-2 hidden sm:block">
+                            {item.description}
+                          </p>
+                          <p className="text-primary font-semibold text-lg mt-1 sm:mt-2">
+                            ${item.price}
+                          </p>
+                        </div>
                       </div>
 
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors p-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      {/* Mobile: Indicators and button row */}
+                      <div className="flex items-center justify-between w-full sm:w-auto sm:flex-shrink-0 sm:space-x-3">
+                        {/* Digital download indicator */}
+                        <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-2 sm:px-3 py-1 rounded-lg">
+                          1× Digital Download
+                        </div>
+
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                          aria-label="Remove from cart"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl p-6 shadow-lg sticky top-8">
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg lg:sticky lg:top-8">
                   <h3 className="text-xl font-semibold text-primary mb-6">Order Summary</h3>
                   
                   <div className="space-y-3 mb-6">
                     {cart.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm">
-                        <span className="text-gray-600">
+                      <div key={item.id} className="flex justify-between items-start text-sm gap-3">
+                        <span className="text-gray-600 line-clamp-2 flex-1">
                           {item.title}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-primary flex-shrink-0">
                           ${item.price.toFixed(2)}
                         </span>
                       </div>
@@ -222,7 +229,7 @@ export default function CartPage() {
                   </div>
 
                   {/* Email Collection Form */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address *
                     </label>
@@ -231,7 +238,7 @@ export default function CartPage() {
                       value={email}
                       onChange={handleEmailChange}
                       placeholder="your@email.com"
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                      className={`w-full px-3 py-3 text-base border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
                         emailError 
                           ? 'border-red-300 focus:ring-red-200 focus:border-red-500' 
                           : email && !emailError

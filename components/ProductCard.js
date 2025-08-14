@@ -163,16 +163,17 @@ function ProductCard({ product, onProductClick, isPriority = false, showNewBadge
             )}
 
 
-            {/* Favorite/Heart Icon - Positioned to avoid conflicts */}
+            {/* Favorite/Heart Icon - Positioned to avoid conflicts with proper touch target size */}
             <button 
-              className={`absolute w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white will-change-[opacity] ${
+              className={`absolute w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white will-change-[opacity] ${
                 isPDF && pageCount > 0 
-                  ? 'top-12 right-3' 
-                  : 'top-3 right-3'
+                  ? 'top-12 right-2' 
+                  : 'top-2 right-2'
               } ${isFavorite(normalizedProduct.id) ? 'opacity-100' : ''}`}
               onClick={handleToggleFavorite}
               disabled={isTogglingFavorite}
               title={isFavorite(normalizedProduct.id) ? 'Remove from favorites' : 'Add to favorites'}
+              aria-label={isFavorite(normalizedProduct.id) ? 'Remove from favorites' : 'Add to favorites'}
             >
               {isTogglingFavorite ? (
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
@@ -192,11 +193,12 @@ function ProductCard({ product, onProductClick, isPriority = false, showNewBadge
               )}
             </button>
 
-            {/* Quick Add Button - Bottom Center */}
+            {/* Quick Add Button - Bottom Center with better touch target */}
             <button
               onClick={handleAddToCart}
               disabled={isAdding}
-              className="absolute bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white px-4 py-2 rounded-full text-sm font-medium transition-opacity duration-200 hover:bg-gray-800 disabled:opacity-50 will-change-[opacity]"
+              className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-black text-white px-4 py-3 min-h-[44px] rounded-full text-sm font-medium transition-opacity duration-200 hover:bg-gray-800 disabled:opacity-50 will-change-[opacity] touch-manipulation"
+              aria-label={`Add ${normalizedProduct.title} to cart`}
             >
               {isAdding ? (
                 alreadyInCart ? (
@@ -219,7 +221,7 @@ function ProductCard({ product, onProductClick, isPriority = false, showNewBadge
           </div>
 
           {/* Product Info - Etsy Style */}
-          <div className="p-3">
+          <div className="p-3 sm:p-4">
             {/* Title */}
             <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 leading-tight group-hover:text-primary transition-colors duration-200">
               {normalizedProduct.title}

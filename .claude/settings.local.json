@@ -57,7 +57,9 @@
       "Bash(git remote:*)",
       "Bash(echo:*)",
       "Bash(NODE_ENV=development node test-pdf-processing.js)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(NODE_ENV=development node test-database-query.js)",
+      "Bash(npx dotenv -e .env.local:*)"
     ],
     "deny": []
   }

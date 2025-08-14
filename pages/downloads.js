@@ -101,16 +101,16 @@ export default function DownloadsPage() {
               
               <div className="space-y-4">
                 {downloads.map((download) => (
-                  <div key={download.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-start space-x-4">
+                  <div key={download.id} className="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
                       {/* Product Image */}
-                      <div className="flex-shrink-0 w-20 h-20 relative bg-gray-200 rounded-lg overflow-hidden">
+                      <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 relative bg-gray-200 rounded-lg overflow-hidden">
                         {download.products?.image ? (
                           <Image
                             src={download.products.image}
                             alt={download.products.title || 'Digital Artwork'}
                             fill
-                            sizes="80px"
+                            sizes="(max-width: 640px) 64px, 80px"
                             className="object-cover"
                           />
                         ) : (
@@ -140,18 +140,18 @@ export default function DownloadsPage() {
                       </div>
                       
                       {/* Download Button */}
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 w-full sm:w-auto mt-3 sm:mt-0">
                         {new Date(download.expires_at) > new Date() ? (
                           <a
                             href={download.download_url}
-                            className="inline-block bg-secondary hover:bg-secondary-dark text-primary px-6 py-3 rounded-lg font-semibold transition-colors"
+                            className="block sm:inline-block bg-secondary hover:bg-secondary-dark text-primary px-6 py-3 rounded-lg font-semibold transition-colors text-center"
                             target="_blank"
                             rel="noopener noreferrer"
                           >
                             Download
                           </a>
                         ) : (
-                          <span className="inline-block bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-semibold">
+                          <span className="block sm:inline-block bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-semibold text-center">
                             Expired
                           </span>
                         )}
