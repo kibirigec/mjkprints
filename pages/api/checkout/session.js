@@ -7,6 +7,29 @@ export default async function handler(req, res) {
     return res.status(405).end('Method Not Allowed')
   }
 
+  // Validate PayPal environment variables early
+  const paypalClientId = process.env.PAYPAL_CLIENT_ID
+  const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET
+  
+  console.log('[CHECKOUT] Environment check:', {
+    hasClientId: !!paypalClientId,
+    hasClientSecret: !!paypalClientSecret,
+    clientIdLength: paypalClientId?.length || 0,
+    nodeEnv: process.env.NODE_ENV,
+    platform: process.platform
+  })
+  
+  if (!paypalClientId || !paypalClientSecret) {
+    console.error('[CHECKOUT] Missing PayPal credentials:', {
+      PAYPAL_CLIENT_ID: paypalClientId ? 'SET' : 'MISSING',
+      PAYPAL_CLIENT_SECRET: paypalClientSecret ? 'SET' : 'MISSING'
+    })
+    return res.status(500).json({
+      error: 'PayPal configuration error',
+      details: 'PayPal credentials not properly configured on server'
+    })
+  }
+
   try {
     const { items, email, billingDetails } = req.body
     
