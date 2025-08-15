@@ -16,8 +16,9 @@ export default function CartPage() {
   const [email, setEmail] = useState('')
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [emailError, setEmailError] = useState('')
-  const [paypalLoading, setPaypalLoading] = useState(false)
+  const [paypalLoading, setPaypalLoading] = useState(true) // Start as loading
   const [paypalError, setPaypalError] = useState(null)
+  const [paypalLoaded, setPaypalLoaded] = useState(false)
 
   // Auto-show email form when coming from "Buy Now"
   useEffect(() => {
@@ -330,21 +331,27 @@ export default function CartPage() {
                       <div>
                         <PayPalScriptProvider 
                           options={{ 
-                            clientId: "ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa",
-                            currency: "USD"
+                            clientId: "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R",
+                            currency: "USD",
+                            intent: "capture"
                           }}
                           onLoadStart={() => {
                             console.log('PayPal script loading started')
                             setPaypalLoading(true)
+                            setPaypalLoaded(false)
+                            setPaypalError(null)
                           }}
                           onLoad={() => {
                             console.log('PayPal script loaded successfully')
                             setPaypalLoading(false)
+                            setPaypalLoaded(true)
+                            setPaypalError(null)
                           }}
                           onError={(error) => {
                             console.error('PayPal script loading error:', error)
                             setPaypalError('PayPal failed to load')
                             setPaypalLoading(false)
+                            setPaypalLoaded(false)
                           }}
                         >
                           <PayPalButtons
@@ -365,48 +372,55 @@ export default function CartPage() {
                           />
                         </PayPalScriptProvider>
                         
-                        {/* Fallback Checkout Button */}
-                        {(paypalError || paypalLoading) && (
-                          <div className="mt-4">
-                            {paypalLoading && (
-                              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        {/* Always show fallback button with PayPal branding */}
+                        <div className="mt-4 space-y-3">
+                          {paypalLoading && !paypalLoaded && (
+                            <div className="text-center p-4 bg-blue-50 rounded-lg">
+                              <div className="flex items-center justify-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-blue-700">Loading PayPal buttons...</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {paypalError && (
+                            <div className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <p className="text-yellow-800 text-sm">
+                                PayPal buttons couldn't load. Use the checkout button below.
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Always show fallback button */}
+                          <div className="space-y-2">
+                            <button
+                              onClick={handleFallbackCheckout}
+                              disabled={isCheckingOut || !!emailError || !email}
+                              className={`w-full px-6 py-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-3 ${
+                                isCheckingOut || !!emailError || !email
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
+                              }`}
+                            >
+                              {isCheckingOut ? (
                                 <div className="flex items-center justify-center space-x-2">
-                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                  <span className="text-blue-700">Loading PayPal...</span>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  <span>Processing...</span>
                                 </div>
-                              </div>
-                            )}
-                            
-                            {paypalError && (
-                              <div className="space-y-3">
-                                <div className="text-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                  <p className="text-yellow-800 text-sm">
-                                    PayPal buttons not loading? Use the fallback checkout below.
-                                  </p>
-                                </div>
-                                
-                                <button
-                                  onClick={handleFallbackCheckout}
-                                  disabled={isCheckingOut || !!emailError || !email}
-                                  className={`w-full px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
-                                    isCheckingOut || !!emailError || !email
-                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
-                                  }`}
-                                >
-                                  {isCheckingOut ? (
-                                    <div className="flex items-center justify-center space-x-2">
-                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                      <span>Processing...</span>
-                                    </div>
-                                  ) : (
-                                    'Continue with PayPal Checkout'
-                                  )}
-                                </button>
-                              </div>
-                            )}
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h8.418c2.508 0 4.556.19 5.974 1.146 1.344.916 2.182 2.343 2.182 4.583 0 2.334-.989 4.282-2.398 5.391-1.83 1.441-4.474 1.68-7.207 1.68H9.185l-1.23 8.537zm2.984-13.014h2.602c1.185 0 2.154-.182 2.754-.516.6-.334.9-.86.9-1.578 0-.718-.3-1.244-.9-1.578-.6-.334-1.569-.516-2.754-.516H9.06l1z"/>
+                                  </svg>
+                                  <span>Continue with PayPal</span>
+                                </>
+                              )}
+                            </button>
+                            <p className="text-xs text-center text-gray-500">
+                              Secure checkout powered by PayPal
+                            </p>
                           </div>
-                        )}
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
