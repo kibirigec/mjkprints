@@ -63,7 +63,8 @@
       "Bash(true)",
       "Bash(npm run paypal:test:*)",
       "Bash(PAYPAL_CLIENT_ID=ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa PAYPAL_CLIENT_SECRET=ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa PAYPAL_ENVIRONMENT=sandbox node scripts/test-paypal.mjs)",
-      "Bash(npm run paypal:webhook:test:*)"
+      "Bash(npm run paypal:webhook:test:*)",
+      "Bash(PAYPAL_CLIENT_ID=AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R PAYPAL_CLIENT_SECRET=ELkhs8HaD6fMBxdQpSyKlIazDD1JNQZDFKG7dKwH6XbOClEsI1azDD1JNQZDFKG7dKwH6XbOClEsI1azDD1JNQZDFKG7dKwH6XbOClEsI1azFV8R9ckbPMv8iUZyrZwa5UE71KIa PAYPAL_ENVIRONMENT=sandbox node scripts/test-paypal.mjs)"
     ],
     "deny": []
   }
