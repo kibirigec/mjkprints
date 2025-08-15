@@ -373,11 +373,13 @@ export default function CartPage() {
                             clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AR9qsXbxX30I23erwoc6AoScM-GU8xE8B0vr8UsIwc4IDz1kbzE2Fq_28fJJrUut85g199Z5oLxkaKzT",
                             currency: "USD",
                             intent: "capture",
-                            "enable-funding": "venmo,paylater",
-                            "disable-funding": "card",
+                            "enable-funding": "venmo,paylater,card",
+                            "disable-funding": "",
                             locale: "en_US",
                             "data-sdk-integration-source": "button-factory",
-                            components: "buttons"
+                            components: "buttons",
+                            "buyer-country": "US",
+                            debug: false
                           }}
                           onLoadStart={() => {
                             console.log('PayPal script loading started')
@@ -404,8 +406,9 @@ export default function CartPage() {
                               layout: "vertical",
                               color: "blue",
                               shape: "rect",
-                              label: "pay",
-                              height: 50
+                              label: "checkout",
+                              height: 50,
+                              tagline: false
                             }}
                             fundingSource={undefined}
                             createOrder={handlePayPalCreateOrder}
@@ -416,7 +419,15 @@ export default function CartPage() {
                               setIsCheckingOut(false)
                             }}
                             onInit={(data, actions) => {
-                              console.log('PayPal button initialized')
+                              console.log('PayPal button initialized - guest checkout enabled')
+                              // Suppress common PayPal session warnings
+                              const originalWarn = console.warn
+                              console.warn = (...args) => {
+                                if (args[0] && args[0].includes && args[0].includes('global_session_not_found')) {
+                                  return // Suppress this specific warning
+                                }
+                                originalWarn.apply(console, args)
+                              }
                             }}
                           />
                         </PayPalScriptProvider>
