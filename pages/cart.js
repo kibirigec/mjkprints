@@ -359,7 +359,7 @@ export default function CartPage() {
                             intent: "capture",
                             "enable-funding": "venmo,paylater,card",
                             "disable-funding": "",
-                            "merchant-id": "DH58TMJ3KVPVU"
+                            "merchant-id": "sb-o89li45203670@business.example.com"
                           }}
                           onLoadStart={() => {
                             console.log('PayPal script loading started')
