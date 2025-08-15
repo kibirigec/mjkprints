@@ -1,0 +1,66 @@
+{
+  "id": "WH-2W4371984A3658243-7B87B8C0D-67890123",
+  "create_time": "2025-08-15T22:10:00Z",
+  "resource_type": "capture",
+  "event_type": "PAYMENT.CAPTURE.COMPLETED",
+  "summary": "Payment completed for order",
+  "resource": {
+    "id": "5TY05013RH49097X",
+    "custom_id": "test-order-123",
+    "status": "COMPLETED",
+    "amount": {
+      "currency_code": "USD",
+      "value": "19.99"
+    },
+    "final_capture": true,
+    "seller_protection": {
+      "status": "ELIGIBLE",
+      "dispute_categories": ["ITEM_NOT_RECEIVED", "UNAUTHORIZED_TRANSACTION"]
+    },
+    "seller_receivable_breakdown": {
+      "gross_amount": {
+        "currency_code": "USD",
+        "value": "19.99"
+      },
+      "paypal_fee": {
+        "currency_code": "USD",
+        "value": "0.88"
+      },
+      "net_amount": {
+        "currency_code": "USD",
+        "value": "19.11"
+      }
+    },
+    "invoice_id": "MJK-TEST-001",
+    "custom_id": "test-order-123",
+    "links": [
+      {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/5TY05013RH49097X",
+        "rel": "self",
+        "method": "GET"
+      }
+    ],
+    "create_time": "2025-08-15T22:09:45Z",
+    "update_time": "2025-08-15T22:09:45Z",
+    "payer": {
+      "email_address": "test@mjkprints.store",
+      "payer_id": "TESTPAYERID123",
+      "address": {
+        "country_code": "US"
+      }
+    },
+    "supplementary_data": {
+      "related_ids": {
+        "order_id": "test-paypal-order-456"
+      }
+    }
+  },
+  "links": [
+    {
+      "href": "https://api.sandbox.paypal.com/v1/notifications/webhooks-events/WH-2W4371984A3658243-7B87B8C0D-67890123",
+      "rel": "self",
+      "method": "GET"
+    }
+  ],
+  "event_version": "1.0"
+}

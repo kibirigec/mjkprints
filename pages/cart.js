@@ -147,8 +147,24 @@ export default function CartPage() {
 
   const handlePayPalError = (error) => {
     console.error('❌ PayPal payment error:', error)
-    setPaypalError(error.message || 'PayPal payment failed')
-    alert(`Payment failed: ${error.message || 'Please try again.'}`)
+    
+    // Handle specific PayPal error types
+    let errorMessage = 'Payment failed. Please try again.'
+    
+    if (error.message) {
+      if (error.message.includes('PAYMENT_DENIED')) {
+        errorMessage = 'Payment was declined. Please check your payment method or try a different one.'
+      } else if (error.message.includes('INSTRUMENT_DECLINED')) {
+        errorMessage = 'Your payment method was declined. Please try a different payment method.'
+      } else if (error.message.includes('PAYER_ACTION_REQUIRED')) {
+        errorMessage = 'Additional verification required. Please complete the payment process.'
+      } else {
+        errorMessage = `Payment failed: ${error.message}`
+      }
+    }
+    
+    setPaypalError(errorMessage)
+    alert(errorMessage)
     setIsCheckingOut(false)
   }
 
@@ -357,9 +373,11 @@ export default function CartPage() {
                             clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AR9qsXbxX30I23erwoc6AoScM-GU8xE8B0vr8UsIwc4IDz1kbzE2Fq_28fJJrUut85g199Z5oLxkaKzT",
                             currency: "USD",
                             intent: "capture",
-                            "enable-funding": "venmo,paylater,card",
-                            "disable-funding": "",
-                            locale: "en_US"
+                            "enable-funding": "venmo,paylater",
+                            "disable-funding": "card",
+                            locale: "en_US",
+                            "data-sdk-integration-source": "button-factory",
+                            components: "buttons"
                           }}
                           onLoadStart={() => {
                             console.log('PayPal script loading started')
@@ -386,14 +404,19 @@ export default function CartPage() {
                               layout: "vertical",
                               color: "blue",
                               shape: "rect",
-                              label: "pay"
+                              label: "pay",
+                              height: 50
                             }}
+                            fundingSource={undefined}
                             createOrder={handlePayPalCreateOrder}
                             onApprove={handlePayPalApprove}
                             onError={handlePayPalError}
                             onCancel={() => {
                               console.log('PayPal payment cancelled')
                               setIsCheckingOut(false)
+                            }}
+                            onInit={(data, actions) => {
+                              console.log('PayPal button initialized')
                             }}
                           />
                         </PayPalScriptProvider>
