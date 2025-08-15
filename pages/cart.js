@@ -354,7 +354,7 @@ export default function CartPage() {
                       <div>
                         <PayPalScriptProvider 
                           options={{ 
-                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R",
+                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AR9qsXbxX30I23erwoc6AoScM-GU8xE8B0vr8UsIwc4IDz1kbzE2Fq_28fJJrUut85g199Z5oLxkaKzT",
                             currency: "USD",
                             intent: "capture",
                             "enable-funding": "venmo,paylater,card",

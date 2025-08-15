@@ -1,5 +1,5 @@
 import { createPayPalOrder } from '../../../lib/paypal'
-import { createOrder, createOrderItems } from '../../../lib/supabase'
+import { createOrder, createOrderItems, updateOrderWithPayPalId } from '../../../lib/supabase'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -160,8 +160,8 @@ export default async function handler(req, res) {
       console.log('[CHECKOUT] PayPal order created successfully:', paypalOrder.id)
 
       // Update order with PayPal order ID
-      // Note: You might want to add this function to your supabase.js file
-      // await updateOrderPayPalSession(order.id, paypalOrder.id)
+      console.log('[CHECKOUT] Updating database order with PayPal order ID...')
+      await updateOrderWithPayPalId(order.id, paypalOrder.id)
 
       console.log('[CHECKOUT] Checkout session completed successfully')
       res.status(200).json({

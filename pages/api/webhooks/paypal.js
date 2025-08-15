@@ -1,6 +1,6 @@
 import { buffer } from 'micro'
 import { verifyPayPalWebhookSignature } from '../../../lib/paypal'
-import { updateOrderStatus, createDownloadLinks, getOrderById, getProductFilesForAttachment } from '../../../lib/supabase'
+import { updateOrderStatus, createDownloadLinks, getOrderById, getProductFilesForAttachment, getOrderByPayPalId } from '../../../lib/supabase'
 import { sendOrderConfirmationEmail } from '../../../lib/email'
 
 // Disable body parsing for webhook
@@ -107,19 +107,27 @@ async function handlePaymentCaptureCompleted(event) {
     const capture = event.resource
     const orderId = capture.supplementary_data?.related_ids?.order_id
     
-    // Try to find order ID from custom_id or other fields
+    // Try to find order ID from custom_id first
     let dbOrderId = capture.custom_id
     
     if (!dbOrderId && orderId) {
-      // If we have the PayPal order ID, we might need to look it up differently
+      // If we have the PayPal order ID, look it up in our database
       console.log('[PAYPAL WEBHOOK] Attempting to find order by PayPal order ID:', orderId)
-      // You might need to implement a lookup function in supabase.js
-      // For now, we'll assume the custom_id contains our database order ID
+      try {
+        const orderRecord = await getOrderByPayPalId(orderId)
+        if (orderRecord) {
+          dbOrderId = orderRecord.id
+          console.log('[PAYPAL WEBHOOK] Found order by PayPal ID lookup:', dbOrderId)
+        }
+      } catch (lookupError) {
+        console.error('[PAYPAL WEBHOOK] Error looking up order by PayPal ID:', lookupError.message)
+      }
     }
 
     if (!dbOrderId) {
       console.error('[PAYPAL WEBHOOK] CRITICAL: No order ID found in capture data')
       console.error('[PAYPAL WEBHOOK] Capture data:', JSON.stringify(capture, null, 2))
+      console.error('[PAYPAL WEBHOOK] Tried custom_id and PayPal order ID lookup')
       return
     }
 
