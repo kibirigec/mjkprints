@@ -47,7 +47,12 @@ export default function CartPage() {
   }
 
   const handlePayPalCreateOrder = async () => {
-    console.log('🛒 Starting PayPal order creation...', { email, cartItems: cart.length })
+    console.log('🛒 Starting PayPal order creation...', { 
+      email, 
+      cartItems: cart.length,
+      timestamp: new Date().toISOString(),
+      caller: 'PayPal SDK Button'
+    })
     
     // Validate email
     const emailValidationError = validateEmail(email)
@@ -351,7 +356,9 @@ export default function CartPage() {
                           options={{ 
                             clientId: "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R",
                             currency: "USD",
-                            intent: "capture"
+                            intent: "capture",
+                            "enable-funding": "venmo,paylater,card",
+                            "disable-funding": ""
                           }}
                           onLoadStart={() => {
                             console.log('PayPal script loading started')
