@@ -65,7 +65,13 @@ export default function CartPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: cart,
+          items: cart.map(item => ({
+            id: item.id,
+            title: item.title,
+            price: parseFloat(item.price),
+            quantity: parseInt(item.quantity || 1),
+            description: item.description || 'Digital Download'
+          })),
           email: email,
           billingDetails: {
             email: email,
@@ -153,7 +159,13 @@ export default function CartPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: cart,
+          items: cart.map(item => ({
+            id: item.id,
+            title: item.title,
+            price: parseFloat(item.price),
+            quantity: parseInt(item.quantity || 1),
+            description: item.description || 'Digital Download'
+          })),
           email: email,
           billingDetails: {
             email: email,
