@@ -116,7 +116,7 @@ export default async function handler(req, res) {
         items,
         email,
         orderId: order.id,
-        successUrl: `${baseUrl}/success?paypal_order_id={order_id}&order_id=${order.id}`,
+        successUrl: `${baseUrl}/success?order_id=${order.id}`,
         cancelUrl: `${baseUrl}/cart?canceled=true`
       })
       
