@@ -84,8 +84,14 @@ export default function CartPage() {
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ API request failed:', response.status, errorText)
-        throw new Error(`API request failed with status ${response.status}`)
+        console.error('❌ API request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: errorText,
+          url: response.url
+        })
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`)
       }
 
       const responseData = await response.json()
