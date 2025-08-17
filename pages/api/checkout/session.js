@@ -58,6 +58,18 @@ export default async function handler(req, res) {
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     console.log('[CHECKOUT] Total calculated:', total)
 
+    // Add validation for the total amount
+    if (isNaN(total) || total <= 0) {
+      console.error('[CHECKOUT] Validation failed: Invalid total amount.', {
+        total,
+        items
+      })
+      return res.status(400).json({
+        error: 'Invalid checkout: Total amount must be a positive number.',
+        details: 'This may be caused by products with a missing or invalid price.'
+      })
+    }
+
     // Create pending order in database
     console.log('[CHECKOUT] Creating order in database...')
     try {
