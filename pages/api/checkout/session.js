@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   // Validate PayPal environment variables early
-  const paypalClientId = process.env.PAYPAL_CLIENT_ID
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
   const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET
   
   console.log('[CHECKOUT] Environment check:', {
