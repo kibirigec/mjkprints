@@ -31,7 +31,6 @@ const log = (level, message, data = {}) => {
   if (level === 'error') {
     console.error(`[IMAGE-UPLOAD-${level.toUpperCase()}]`, JSON.stringify(logEntry, null, 2))
   } else {
-    console.log(`[IMAGE-UPLOAD-${level.toUpperCase()}]`, JSON.stringify(logEntry, null, 2))
   }
 }
 

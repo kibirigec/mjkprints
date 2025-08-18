@@ -57,12 +57,10 @@ export function CartProvider({ children }) {
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('mjkprints-cart')
-    console.log('🛒 Loading cart from localStorage:', savedCart ? 'Found saved cart' : 'No saved cart')
     
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart)
-        console.log('🛒 Parsed saved cart:', parsedCart.length, 'items')
         dispatch({ type: CART_ACTIONS.LOAD_CART, payload: parsedCart })
       } catch (error) {
         console.error('❌ Error loading cart from localStorage:', error)
@@ -77,7 +75,6 @@ export function CartProvider({ children }) {
   // Save cart to localStorage only after initial load
   useEffect(() => {
     if (isCartLoaded) {
-      console.log('💾 Saving cart to localStorage:', cart.length, 'items')
       localStorage.setItem('mjkprints-cart', JSON.stringify(cart))
     }
   }, [cart, isCartLoaded])

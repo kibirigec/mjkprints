@@ -36,15 +36,11 @@ export default async function handler(req, res) {
         try {
           const { title, description, price, image, pdfFileId, pdfData, imageFileId, imageData } = req.body
 
-          console.log('[PRODUCTS-API] ======= PRODUCT CREATION REQUEST =======')
-          console.log('[PRODUCTS-API] Request method: POST (creating new product)')
-          console.log('[PRODUCTS-API] Basic product fields:', { 
             title: title?.substring(0, 50) + '...', 
             description: description?.substring(0, 50) + '...',
             price: price,
             image: image?.substring(0, 100)
           })
-          console.log('[PRODUCTS-API] File associations:', { 
             hasPDF: !!pdfFileId,
             pdfFileId: pdfFileId,
             hasPdfData: !!pdfData,
@@ -52,12 +48,9 @@ export default async function handler(req, res) {
             imageFileId: imageFileId,
             hasImageData: !!imageData
           })
-          console.log('[PRODUCTS-API] Complete request body keys:', Object.keys(req.body))
-          console.log('[PRODUCTS-API] Complete request body:', req.body)
           
           // Debug: Log the complete request body structure and validate file ID
           if (pdfFileId) {
-            console.log('[PRODUCTS-API] PDF file details:', {
               fileId: pdfFileId,
               fileIdType: typeof pdfFileId,
               fileIdLength: pdfFileId?.length,
@@ -77,7 +70,6 @@ export default async function handler(req, res) {
           
           // Debug: Log image file details and validate image file ID
           if (imageFileId) {
-            console.log('[PRODUCTS-API] Image file details:', {
               fileId: imageFileId,
               fileIdType: typeof imageFileId,
               fileIdLength: imageFileId?.length,
@@ -117,45 +109,32 @@ export default async function handler(req, res) {
             image: image.trim()
           }
 
-          console.log('[PRODUCTS-API] ======= DETERMINING CREATION STRATEGY =======')
-          console.log('[PRODUCTS-API] productData before file IDs:', productData)
 
           // Create product with file references if provided
           let newProduct
           if (pdfFileId && imageFileId) {
             // Both PDF and image files provided
-            console.log('[PRODUCTS-API] 🔄 Strategy: Creating product with BOTH PDF and image file IDs')
-            console.log('[PRODUCTS-API] PDF file ID:', pdfFileId)
-            console.log('[PRODUCTS-API] Image file ID:', imageFileId)
             // Set both file IDs in product data
             productData.pdf_file_id = pdfFileId
             productData.image_file_id = imageFileId
-            console.log('[PRODUCTS-API] Final productData with both IDs:', productData)
             newProduct = await createProduct(productData)
           } else if (pdfFileId) {
             // Only PDF file provided
-            console.log('[PRODUCTS-API] 📄 Strategy: Creating product with PDF file ID only:', pdfFileId)
             newProduct = await createProductWithPDF(productData, pdfFileId)
           } else if (imageFileId) {
             // Only image file provided
-            console.log('[PRODUCTS-API] 🖼️  Strategy: Creating product with IMAGE file ID only:', imageFileId)
-            console.log('[PRODUCTS-API] Calling createProductWithImage() with:', { productData, imageFileId })
             newProduct = await createProductWithImage(productData, imageFileId)
           } else {
             // No file IDs provided
-            console.log('[PRODUCTS-API] 🔗 Strategy: Creating product without file uploads (URL only)')
             newProduct = await createProduct(productData)
           }
           
-          console.log('[PRODUCTS-API] ======= PRODUCT CREATION COMPLETE =======')
-          console.log('[PRODUCTS-API] Created product:', { 
             id: newProduct.id, 
             title: newProduct.title,
             hasImageFileId: !!newProduct.image_file_id,
             imageFileId: newProduct.image_file_id,
             image: newProduct.image?.substring(0, 100)
           })
-          console.log('[PRODUCTS-API] Complete created product data:', newProduct)
           res.status(201).json(newProduct)
         } catch (error) {
           console.error('[PRODUCTS-API] Create product error:', {

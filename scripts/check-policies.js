@@ -24,7 +24,6 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 
 async function checkPolicies() {
   try {
-    console.log('🔍 Checking existing RLS policies in database...\n')
     
     // Query to check current policies
     const { data, error } = await supabase
@@ -37,7 +36,6 @@ async function checkPolicies() {
     
     if (error) {
       // If pg_policies doesn't work, try the SQL query directly
-      console.log('🔄 Trying direct SQL query...')
       
       const { data: sqlData, error: sqlError } = await supabase.rpc('exec_sql', {
         sql: `
@@ -54,31 +52,13 @@ async function checkPolicies() {
         return
       }
       
-      console.log('📋 Current RLS Policies:')
-      console.log(sqlData)
       return
     }
     
     if (!data || data.length === 0) {
-      console.log('❌ No RLS policies found for key tables!')
-      console.log('This confirms the migration was NOT applied.')
-      console.log('')
-      console.log('🎯 You need to run this SQL in Supabase SQL Editor:')
-      console.log('───────────────────────────────────────────────')
-      console.log('DROP POLICY IF EXISTS "Enable insert for file_uploads" ON file_uploads;')
-      console.log('CREATE POLICY "Enable insert for file_uploads" ON file_uploads FOR INSERT WITH CHECK (true);')
-      console.log('')
-      console.log('DROP POLICY IF EXISTS "Enable insert for orders" ON orders;') 
-      console.log('CREATE POLICY "Enable insert for orders" ON orders FOR INSERT WITH CHECK (true);')
-      console.log('')
-      console.log('DROP POLICY IF EXISTS "Enable insert for order_items" ON order_items;')
-      console.log('CREATE POLICY "Enable insert for order_items" ON order_items FOR INSERT WITH CHECK (true);')
-      console.log('───────────────────────────────────────────────')
       return
     }
     
-    console.log('📋 Current RLS Policies by Table:')
-    console.log('━'.repeat(80))
     
     const grouped = data.reduce((acc, policy) => {
       if (!acc[policy.tablename]) {
@@ -89,14 +69,11 @@ async function checkPolicies() {
     }, {})
     
     Object.keys(grouped).forEach(table => {
-      console.log(`\n🗂️  ${table.toUpperCase()} TABLE:`)
       grouped[table].forEach(policy => {
         const status = policy.cmd === 'INSERT' ? '✅' : '🔍'
-        console.log(`   ${status} ${policy.cmd}: "${policy.policyname}"`)
       })
     })
     
-    console.log('\n🧪 Testing INSERT policies...')
     
     // Test if INSERT policies exist for critical tables
     const criticalTables = ['file_uploads', 'orders', 'order_items']
@@ -108,19 +85,13 @@ async function checkPolicies() {
       )
       
       if (hasInsertPolicy) {
-        console.log(`   ✅ ${table}: Has INSERT policy`)
       } else {
-        console.log(`   ❌ ${table}: MISSING INSERT policy`)
         missingInsertPolicies.push(table)
       }
     })
     
     if (missingInsertPolicies.length === 0) {
-      console.log('\n🎉 All INSERT policies exist! The issue may be elsewhere.')
-      console.log('💡 Try running the health check again - it should work now.')
     } else {
-      console.log(`\n🚨 Missing INSERT policies for: ${missingInsertPolicies.join(', ')}`)
-      console.log('📝 The migration was not fully applied.')
     }
     
   } catch (err) {

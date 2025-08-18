@@ -22,7 +22,6 @@ const colors = {
 };
 
 function log(color, message) {
-  console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
 function runStripeCommand(command, args = []) {

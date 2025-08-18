@@ -15,16 +15,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('=== Testing PDF processing with storage file ===')
     
     // Step 1: Get file record
-    console.log('Step 1: Getting file record...')
     const file = await getFileUploadById(fileId)
     if (!file) {
       return res.status(404).json({ error: 'File not found' })
     }
     
-    console.log('✓ File record retrieved:', {
       id: file.id,
       fileName: file.file_name,
       storagePath: file.storage_path,
@@ -32,7 +29,6 @@ export default async function handler(req, res) {
     })
     
     // Step 2: Download from storage
-    console.log('Step 2: Downloading from storage...')
     const { data, error } = await supabase.storage
       .from('mjk-prints-storage')
       .download(file.storage_path)
@@ -43,20 +39,16 @@ export default async function handler(req, res) {
 
     const arrayBuffer = await data.arrayBuffer()
     const pdfBuffer = Buffer.from(arrayBuffer)
-    console.log('✓ File downloaded from storage:', pdfBuffer.length, 'bytes')
     
     // Step 3: Check PDF header
     const header = pdfBuffer.slice(0, 8).toString()
-    console.log('✓ PDF header:', header)
     
     if (!header.startsWith('%PDF')) {
       throw new Error('Invalid PDF header: ' + header)
     }
     
     // Step 4: Import PDF.js and test document loading
-    console.log('Step 4: Testing PDF.js document loading...')
     const pdfjs = await import('pdfjs-dist/build/pdf.mjs')
-    console.log('✓ PDF.js imported, version:', pdfjs.version)
     
     const uint8Array = new Uint8Array(pdfBuffer)
     const loadingTask = pdfjs.getDocument({ 
@@ -66,16 +58,13 @@ export default async function handler(req, res) {
     })
     
     const pdf = await loadingTask.promise
-    console.log('✓ PDF loaded successfully:', {
       numPages: pdf.numPages,
       fingerprint: pdf.fingerprint
     })
     
     // Step 5: Get first page
-    console.log('Step 5: Getting first page...')
     const page = await pdf.getPage(1)
     const viewport = page.getViewport({ scale: 2.0 })
-    console.log('✓ First page loaded:', {
       pageNumber: page.pageNumber,
       viewport: {
         width: viewport.width,
@@ -84,7 +73,6 @@ export default async function handler(req, res) {
     })
     
     // Step 6: Test Canvas rendering
-    console.log('Step 6: Testing Canvas rendering...')
     
     // Try different Canvas creation approaches
     let canvas, context
@@ -93,13 +81,11 @@ export default async function handler(req, res) {
       // Approach 1: Standard Canvas creation
       canvas = new Canvas(Math.ceil(viewport.width), Math.ceil(viewport.height))
       context = canvas.getContext('2d')
-      console.log('✓ Canvas created with approach 1')
     } catch (canvasError) {
       console.error('Canvas creation failed:', canvasError.message)
       throw canvasError
     }
     
-    console.log('Canvas info:', {
       width: canvas.width,
       height: canvas.height,
       contextType: typeof context,
@@ -126,23 +112,17 @@ export default async function handler(req, res) {
       typeof context[method] === 'undefined'
     )
     
-    console.log('Available methods:', availableMethods.length)
-    console.log('Missing methods:', missingMethods)
     
     // Check if the context has the canvas property
-    console.log('Context has canvas property:', !!context.canvas)
-    console.log('Context canvas matches our canvas:', context.canvas === canvas)
     
     const renderContext = {
       canvasContext: context,
       viewport: viewport
     }
     
-    console.log('Render context created, starting render...')
     
     try {
       await page.render(renderContext).promise
-      console.log('✓ PDF rendered to Canvas successfully')
     } catch (renderError) {
       console.error('Render error details:', {
         message: renderError.message,
@@ -153,11 +133,8 @@ export default async function handler(req, res) {
     }
     
     // Step 7: Convert to image
-    console.log('Step 7: Converting to image...')
     const imageBuffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
-    console.log('✓ Canvas converted to JPEG:', imageBuffer.length, 'bytes')
     
-    console.log('=== All tests passed with storage file! ===')
     
     return res.status(200).json({
       success: true,

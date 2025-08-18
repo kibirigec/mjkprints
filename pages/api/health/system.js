@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('[HEALTH-API] System health check requested')
     const healthStatus = await performSystemHealthCheck()
     
     // Set appropriate HTTP status based on health

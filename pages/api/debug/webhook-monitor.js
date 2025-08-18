@@ -80,7 +80,6 @@ export default async function handler(req, res) {
     }
 
     // Log the webhook monitoring check
-    console.log('[WEBHOOK-MONITOR] Webhook configuration check:', {
       hasSecret: webhookInfo.configuration.endpointSecret.exists,
       environment: webhookInfo.environment.nodeEnv,
       platform: webhookInfo.environment.platform,

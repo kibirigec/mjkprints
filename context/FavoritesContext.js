@@ -41,12 +41,10 @@ export function FavoritesProvider({ children }) {
   // Load favorites from localStorage on mount
   useEffect(() => {
     const savedFavorites = localStorage.getItem('mjkprints-favorites')
-    console.log('❤️ Loading favorites from localStorage:', savedFavorites ? 'Found saved favorites' : 'No saved favorites')
     
     if (savedFavorites) {
       try {
         const parsedFavorites = JSON.parse(savedFavorites)
-        console.log('❤️ Parsed saved favorites:', parsedFavorites.length, 'items')
         dispatch({ type: FAVORITES_ACTIONS.LOAD_FAVORITES, payload: parsedFavorites })
       } catch (error) {
         console.error('❌ Error loading favorites from localStorage:', error)
@@ -61,7 +59,6 @@ export function FavoritesProvider({ children }) {
   // Save favorites to localStorage only after initial load
   useEffect(() => {
     if (isFavoritesLoaded) {
-      console.log('💾 Saving favorites to localStorage:', favorites.length, 'items')
       localStorage.setItem('mjkprints-favorites', JSON.stringify(favorites))
     }
   }, [favorites, isFavoritesLoaded])

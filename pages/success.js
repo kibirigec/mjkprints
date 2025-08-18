@@ -146,7 +146,6 @@ export default function SuccessPage() {
                       <h3 className="text-lg font-semibold text-primary">Your Digital Downloads</h3>
                       {order.order_items.map((item) => {
                         // Debug logging (remove in production)
-                        console.log('Order item debug:', {
                           itemId: item.id,
                           hasProducts: !!item.products,
                           imageUrl: item.products?.image,
@@ -165,10 +164,8 @@ export default function SuccessPage() {
                                 sizes="64px"
                                 className="object-cover"
                                 onError={() => {
-                                  console.log('Image load error for:', item.products.image)
                                   handleImageError(item.id)
                                 }}
-                                onLoad={() => console.log('Image loaded successfully:', item.products.image)}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">

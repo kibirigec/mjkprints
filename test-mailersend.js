@@ -6,13 +6,8 @@ dotenv.config({ path: '.env.local' })
 
 // Test MailerSend integration
 const testEmail = async () => {
-  console.log('🧪 Testing MailerSend integration...')
   
   // Debug: Check if environment variables are loaded
-  console.log('📋 Environment check:')
-  console.log('- MAILERSEND_API_KEY:', process.env.MAILERSEND_API_KEY ? '✅ Set' : '❌ Missing')
-  console.log('- MAILERSEND_FROM_EMAIL:', process.env.MAILERSEND_FROM_EMAIL || '❌ Missing')
-  console.log('- MAILERSEND_FROM_NAME:', process.env.MAILERSEND_FROM_NAME || '❌ Missing')
   
   // Mock order data
   const mockOrder = {
@@ -53,25 +48,12 @@ const testEmail = async () => {
   ]
 
   try {
-    console.log('🧪 Testing MailerSend with email attachments...')
     const result = await sendOrderConfirmationEmail(mockOrder, mockDownloadLinks, mockAttachmentFiles)
     
     if (result.success) {
-      console.log('✅ Email sent successfully!')
-      console.log('📧 Check the recipient email for the digital planner confirmation')
-      console.log('📎 This email should include 1 attached file: 2025_Digital_Goal_Planner.pdf')
     } else {
-      console.log('❌ Email sending failed:', result.error)
       
       if (result.error.includes('not configured')) {
-        console.log('\n📋 Setup Instructions:')
-        console.log('1. Sign up for MailerSend at https://www.mailersend.com/')
-        console.log('2. Get your API key from the dashboard')
-        console.log('3. Add domain and verify it')
-        console.log('4. Update .env.local with:')
-        console.log('   MAILERSEND_API_KEY=your_api_key_here')
-        console.log('   MAILERSEND_FROM_EMAIL=noreply@yourdomain.com')
-        console.log('5. Restart the development server')
       }
     }
   } catch (error) {

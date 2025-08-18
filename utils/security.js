@@ -127,7 +127,6 @@ export class ClientSecurity {
     // Check inactivity
     const lastActivity = this.getLastActivity()
     if (lastActivity && (now - lastActivity) > SECURITY_CONFIG.INACTIVITY_TIMEOUT) {
-      console.log('🕒 Session expired due to inactivity')
       this.clearSession()
       return false
     }
@@ -172,7 +171,6 @@ export class ClientSecurity {
     
     sessionStorage.removeItem(this.STORAGE_KEYS.AUTH_TOKEN)
     sessionStorage.removeItem(this.STORAGE_KEYS.LAST_ACTIVITY)
-    console.log('🚪 Admin session cleared')
   }
 
   // Clear all security data (including attempts)
@@ -182,7 +180,6 @@ export class ClientSecurity {
     Object.values(this.STORAGE_KEYS).forEach(key => {
       sessionStorage.removeItem(key)
     })
-    console.log('🧹 All admin security data cleared')
   }
 }
 

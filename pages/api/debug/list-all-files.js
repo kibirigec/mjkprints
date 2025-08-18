@@ -25,7 +25,6 @@ export default async function handler(req, res) {
     }
 
     // Check file_uploads table directly
-    console.log('[DEBUG] Fetching from file_uploads table...')
     const client = supabaseAdmin || supabase
     
     const { data: fileUploads, error: fileError } = await client
@@ -40,7 +39,6 @@ export default async function handler(req, res) {
     }
 
     // Check products table
-    console.log('[DEBUG] Fetching from products table...')
     const { data: products, error: productError } = await client
       .from('products')
       .select(`
@@ -98,7 +96,6 @@ export default async function handler(req, res) {
       }))
     }
 
-    console.log('[DEBUG] File listing completed:', results.analysis)
     return res.status(200).json(results)
 
   } catch (error) {

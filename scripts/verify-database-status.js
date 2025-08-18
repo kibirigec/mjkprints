@@ -217,34 +217,21 @@ async function checkDatabaseFunctions() {
  * Main verification function
  */
 async function verifyDatabaseStatus() {
-  console.log('🔍 MJK Prints Database Status Verification')
-  console.log('=' .repeat(50))
-  console.log()
   
   // Environment check
-  console.log('📋 Environment Configuration:')
-  console.log(`   Supabase URL: ${supabaseUrl ? '✅ Set' : '❌ Missing'}`)
-  console.log(`   Supabase Key: ${supabaseAnonKey ? '✅ Set' : '❌ Missing'}`)
-  console.log()
   
   // Check database connection
-  console.log('🔌 Database Connection:')
   try {
     const { data, error } = await supabase.from('products').select('id').limit(1)
     if (error) {
-      console.log(`   Status: ❌ Failed - ${error.message}`)
       return
     } else {
-      console.log('   Status: ✅ Connected')
     }
   } catch (err) {
-    console.log(`   Status: ❌ Connection Failed - ${err.message}`)
     return
   }
-  console.log()
   
   // Check required tables
-  console.log('📊 Required Tables Status:')
   const tableResults = {}
   let missingTables = []
   
@@ -255,66 +242,42 @@ async function verifyDatabaseStatus() {
     const status = result.exists ? '✅' : '❌'
     const rowInfo = result.exists ? `(${result.rowCount} rows)` : `- ${result.error}`
     
-    console.log(`   ${table.name}: ${status} ${rowInfo}`)
-    console.log(`      ${table.description}`)
     
     if (!result.exists) {
       missingTables.push(table.name)
     }
   }
-  console.log()
   
   // Check storage bucket
-  console.log('🗄️  Storage Bucket Status:')
   const storageResult = await checkStorageBucket()
   
   if (storageResult.exists) {
-    console.log(`   ${STORAGE_REQUIREMENTS.bucketName}: ✅ Exists`)
-    console.log(`   Public Access: ${storageResult.bucketInfo?.public ? '✅ Enabled' : '❌ Disabled'}`)
-    console.log(`   Files: ${storageResult.fileCount} files listed`)
   } else {
-    console.log(`   ${STORAGE_REQUIREMENTS.bucketName}: ❌ Missing - ${storageResult.error}`)
   }
-  console.log()
   
   // Check database functions
-  console.log('⚙️  Database Functions Status:')
   const functionResults = await checkDatabaseFunctions()
   
   for (const [funcName, result] of Object.entries(functionResults)) {
     const status = result.exists ? '✅' : '❌'
     const errorInfo = result.error ? ` - ${result.error}` : ''
-    console.log(`   ${funcName}: ${status}${errorInfo}`)
   }
-  console.log()
   
   // Overall assessment
-  console.log('📋 Overall Assessment:')
   
   const allTablesExist = missingTables.length === 0
   const storageOk = storageResult.exists
   const functionsOk = Object.values(functionResults).every(f => f.exists)
   
   if (allTablesExist && storageOk && functionsOk) {
-    console.log('   Status: ✅ All components are properly configured')
-    console.log('   Action: Ready for PDF marketplace operations')
   } else {
-    console.log('   Status: ⚠️  Some components need attention')
-    console.log()
-    console.log('🔧 Required Actions:')
     
     if (missingTables.length > 0) {
-      console.log('   📊 Missing Tables:')
       missingTables.forEach(table => {
-        console.log(`      - Create table: ${table}`)
       })
-      console.log('   👉 Run: supabase-setup.sql in Supabase SQL Editor')
     }
     
     if (!storageOk) {
-      console.log('   🗄️  Missing Storage Bucket:')
-      console.log(`      - Create bucket: ${STORAGE_REQUIREMENTS.bucketName}`)
-      console.log('   👉 Run storage setup section from supabase-setup.sql')
     }
     
     const missingFunctions = Object.entries(functionResults)
@@ -322,20 +285,11 @@ async function verifyDatabaseStatus() {
       .map(([name]) => name)
     
     if (missingFunctions.length > 0) {
-      console.log('   ⚙️  Missing Functions:')
       missingFunctions.forEach(func => {
-        console.log(`      - Create function: ${func}`)
       })
-      console.log('   👉 Run: supabase-setup.sql in Supabase SQL Editor')
     }
   }
   
-  console.log()
-  console.log('📖 Next Steps:')
-  console.log('   1. If issues found, run the complete schema: supabase-setup.sql')
-  console.log('   2. Verify setup with: npm run test-storage-connection')
-  console.log('   3. Test PDF upload: npm run test-pdf-workflow')
-  console.log()
   
   return {
     tables: tableResults,
@@ -357,10 +311,8 @@ if (require.main === module) {
   verifyDatabaseStatus()
     .then(result => {
       if (result.overall.healthy) {
-        console.log('✅ Database verification completed successfully')
         process.exit(0)
       } else {
-        console.log('⚠️  Database verification found issues')
         process.exit(1)  
       }
     })

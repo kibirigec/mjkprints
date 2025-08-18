@@ -10,13 +10,7 @@ config({ path: '.env.local' })
 const { createCheckoutSession, isStripeAvailable } = await import('../lib/stripe.js')
 
 async function testStripeDirect() {
-  console.log('🧪 Direct Stripe integration test...\n')
   
-  console.log('🔍 Stripe Configuration Check:')
-  console.log('- STRIPE_SECRET_KEY set:', !!process.env.STRIPE_SECRET_KEY)
-  console.log('- Key starts with sk_:', process.env.STRIPE_SECRET_KEY?.startsWith('sk_'))
-  console.log('- Stripe available:', isStripeAvailable())
-  console.log('')
   
   if (!isStripeAvailable()) {
     console.error('❌ Stripe is not available - cannot proceed')
@@ -41,19 +35,14 @@ async function testStripeDirect() {
   }
   
   try {
-    console.log('📝 Testing Stripe checkout session creation...')
-    console.log('Order data:', {
       itemsCount: testOrderData.items.length,
       email: testOrderData.email,
       orderId: testOrderData.orderId,
       totalValue: testOrderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     })
-    console.log('')
     
     const session = await createCheckoutSession(testOrderData)
     
-    console.log('✅ Stripe session created successfully!')
-    console.log('Session details:', {
       id: session.id,
       url: session.url,
       payment_status: session.payment_status,
@@ -63,8 +52,6 @@ async function testStripeDirect() {
       expires_at: new Date(session.expires_at * 1000).toISOString()
     })
     
-    console.log('\n🎉 Stripe integration is working correctly!')
-    console.log('The 500 error must be coming from somewhere else.')
     
   } catch (error) {
     console.error('❌ Stripe session creation failed:')
@@ -73,23 +60,15 @@ async function testStripeDirect() {
     
     // Additional error analysis
     if (error.message.includes('No such customer')) {
-      console.log('\n🔍 ANALYSIS: Customer issue')
-      console.log('- Stripe customer ID might be invalid')
     }
     
     if (error.message.includes('Invalid request')) {
-      console.log('\n🔍 ANALYSIS: Invalid request to Stripe API')
-      console.log('- Check the request parameters and format')
     }
     
     if (error.message.includes('authentication')) {
-      console.log('\n🔍 ANALYSIS: Authentication issue')
-      console.log('- Stripe secret key might be incorrect or expired')
     }
     
     if (error.message.includes('rate limit')) {
-      console.log('\n🔍 ANALYSIS: Rate limit issue')
-      console.log('- Too many requests to Stripe API')
     }
   }
 }

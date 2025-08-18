@@ -85,7 +85,6 @@ function ProductCard({ product, onProductClick, isPriority = false, showNewBadge
     
     try {
       const wasAdded = toggleFavorite(normalizedProduct)
-      console.log(`❤️ ${wasAdded ? 'Added to' : 'Removed from'} favorites:`, normalizedProduct.title)
       
       // Small delay for visual feedback
       setTimeout(() => {

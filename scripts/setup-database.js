@@ -44,7 +44,6 @@ const sampleProducts = [
 
 async function setupDatabase() {
   try {
-    console.log('🚀 Setting up MJK Prints database...')
     
     // Check if we can connect to Supabase
     const { data: existingProducts, error: fetchError } = await supabase
@@ -54,22 +53,15 @@ async function setupDatabase() {
 
     if (fetchError) {
       console.error('❌ Failed to connect to Supabase:', fetchError.message)
-      console.log('\n📋 Setup checklist:')
-      console.log('1. Create a Supabase project at https://supabase.com')
-      console.log('2. Run the SQL from supabase-setup.sql in your Supabase SQL Editor')
-      console.log('3. Update your .env.local file with your Supabase URL and API key')
-      console.log('4. Restart your Next.js development server')
       return
     }
 
     // Check if products already exist
     if (existingProducts && existingProducts.length > 0) {
-      console.log('✅ Database already contains products!')
       return
     }
 
     // Insert sample products
-    console.log('📦 Inserting sample products...')
     
     const { data, error } = await supabase
       .from('products')
@@ -81,8 +73,6 @@ async function setupDatabase() {
       return
     }
 
-    console.log(`✅ Successfully inserted ${data.length} sample products!`)
-    console.log('🎉 Database setup complete!')
     
   } catch (error) {
     console.error('❌ Setup failed:', error.message)

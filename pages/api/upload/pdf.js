@@ -31,7 +31,6 @@ const log = (level, message, data = {}) => {
   if (level === 'error') {
     console.error(`[PDF-UPLOAD-${level.toUpperCase()}]`, JSON.stringify(logEntry, null, 2))
   } else {
-    console.log(`[PDF-UPLOAD-${level.toUpperCase()}]`, JSON.stringify(logEntry, null, 2))
   }
 }
 

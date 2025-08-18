@@ -23,7 +23,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('[TEST-EMAIL] Starting email test...', { testType, recipient })
 
     if (testType === 'order-confirmation') {
       // Test order confirmation email
@@ -57,7 +56,6 @@ export default async function handler(req, res) {
       const result = await sendOrderConfirmationEmail(mockOrder, mockDownloadLinks, mockAttachmentFiles)
       
       if (result.success) {
-        console.log('[TEST-EMAIL] Order confirmation test successful')
         return res.status(200).json({
           success: true,
           message: 'Order confirmation test email sent successfully!',

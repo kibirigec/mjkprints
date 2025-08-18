@@ -27,7 +27,6 @@ const PDFPreviewComponent = ({
     setError(null)
 
     try {
-      console.log('[PDF-PREVIEW] Starting processing for file:', pdfFile.id)
       
       // Show progress steps instead of artificial simulation
       setProcessingProgress(25) // Initiating processing
@@ -49,14 +48,12 @@ const PDFPreviewComponent = ({
       }
 
       const data = await response.json()
-      console.log('[PDF-PREVIEW] API response:', data.success ? 'Success' : 'Failed')
       
       if (data.success && data.file) {
         setProcessingProgress(100)
         setProcessingStatus('completed')
         setPreviewData(data.file)
         
-        console.log('[PDF-PREVIEW] Processing completed successfully')
         if (onProcessingComplete) {
           onProcessingComplete(data.file)
         }

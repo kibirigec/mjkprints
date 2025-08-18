@@ -12,7 +12,6 @@ config({ path: '.env.local' })
 
 async function executeDirectSQL() {
   try {
-    console.log('🔧 Attempting direct SQL execution...')
     
     // Read the migration file
     const migrationPath = resolve('./supabase/migrations/20250808152156_fix_rls_policies_for_checkout.sql')
@@ -27,7 +26,6 @@ async function executeDirectSQL() {
     }
     
     const projectId = match[1]
-    console.log(`📋 Project ID: ${projectId}`)
     
     // Create a minimal SQL script with just the essential policies
     const minimalFix = `
@@ -56,38 +54,15 @@ WHERE schemaname = 'public'
 ORDER BY tablename;
 `
     
-    console.log('📝 Creating minimal SQL fix...')
     
     // Write the minimal fix to a temporary file
     await import('fs/promises').then(fs => 
       fs.writeFile('/tmp/minimal-rls-fix.sql', minimalFix)
     )
     
-    console.log('💡 Since automated execution isn\'t working, here\'s the MINIMAL fix:')
-    console.log('')
-    console.log('🎯 Copy and paste THIS into Supabase SQL Editor:')
-    console.log('━'.repeat(80))
-    console.log(minimalFix)
-    console.log('━'.repeat(80))
-    console.log('')
-    console.log('🌐 Go to: https://supabase.com/dashboard/project/hminnrncnrquogdwnpan/sql')
-    console.log('📝 Paste the above SQL and click "Run"')
-    console.log('🧪 Then run: npm run test:checkout')
     
   } catch (err) {
     console.error('❌ Error:', err.message)
-    console.log('')
-    console.log('🎯 FALLBACK APPROACH:')
-    console.log('Run this minimal SQL in Supabase SQL Editor:')
-    console.log('')
-    console.log('DROP POLICY IF EXISTS "Enable insert for file_uploads" ON file_uploads;')
-    console.log('CREATE POLICY "Enable insert for file_uploads" ON file_uploads FOR INSERT WITH CHECK (true);')
-    console.log('')
-    console.log('DROP POLICY IF EXISTS "Enable insert for orders" ON orders;') 
-    console.log('CREATE POLICY "Enable insert for orders" ON orders FOR INSERT WITH CHECK (true);')
-    console.log('')
-    console.log('DROP POLICY IF EXISTS "Enable insert for order_items" ON order_items;')
-    console.log('CREATE POLICY "Enable insert for order_items" ON order_items FOR INSERT WITH CHECK (true);')
   }
 }
 

@@ -403,7 +403,6 @@ describe('previewUtils', () => {
       const input = testFixtures.legacyArrayFormat
       debugPreviewUrls(input, 'test-context')
       
-      expect(console.log).toHaveBeenCalledWith(
         '[previewUtils] test-context - Preview URLs debug:',
         expect.objectContaining({
           type: 'object',
@@ -423,7 +422,6 @@ describe('previewUtils', () => {
       const input = testFixtures.legacyArrayFormat
       debugPreviewUrls(input, 'test-context')
       
-      expect(console.log).not.toHaveBeenCalled()
       
       process.env.NODE_ENV = originalEnv
     })
@@ -435,7 +433,6 @@ describe('previewUtils', () => {
       const input = testFixtures.objectFormat
       debugPreviewUrls(input)
       
-      expect(console.log).toHaveBeenCalledWith(
         '[previewUtils] unknown - Preview URLs debug:',
         expect.objectContaining({
           type: 'object',

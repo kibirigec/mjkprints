@@ -11,7 +11,6 @@ export default async function handler(req, res) {
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
   const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET
   
-  console.log('[CHECKOUT] Environment check:', {
     hasClientId: !!paypalClientId,
     hasClientSecret: !!paypalClientSecret,
     clientIdLength: paypalClientId?.length || 0,
@@ -33,7 +32,6 @@ export default async function handler(req, res) {
   try {
     const { items, email, billingDetails } = req.body
     
-    console.log('[CHECKOUT] Starting checkout session creation:', {
       itemsCount: items?.length,
       email: email,
       hasBillingDetails: !!billingDetails
@@ -41,14 +39,12 @@ export default async function handler(req, res) {
 
     // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
-      console.log('[CHECKOUT] Validation failed: Invalid items array')
       return res.status(400).json({ 
         error: 'Invalid checkout: items array is required and cannot be empty' 
       })
     }
 
     if (!email || !email.includes('@')) {
-      console.log('[CHECKOUT] Validation failed: Invalid email')
       return res.status(400).json({ 
         error: 'Valid email address is required' 
       })
@@ -56,7 +52,6 @@ export default async function handler(req, res) {
 
     // Calculate total
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    console.log('[CHECKOUT] Total calculated:', total)
 
     // Add validation for the total amount
     if (isNaN(total) || total <= 0) {
@@ -71,7 +66,6 @@ export default async function handler(req, res) {
     }
 
     // Create pending order in database
-    console.log('[CHECKOUT] Creating order in database...')
     try {
       const order = await createOrder({
         email,
@@ -83,7 +77,6 @@ export default async function handler(req, res) {
           userAgent: req.headers['user-agent']
         }
       })
-      console.log('[CHECKOUT] Order created successfully:', order.id)
 
       // Create order items
       const orderItemsData = items.map(item => ({
@@ -91,13 +84,10 @@ export default async function handler(req, res) {
         quantity: item.quantity,
         unit_price: item.price
       }))
-      console.log('[CHECKOUT] Creating order items:', orderItemsData.length, 'items')
 
       await createOrderItems(order.id, orderItemsData)
-      console.log('[CHECKOUT] Order items created successfully')
 
       // Create PayPal order
-      console.log('[CHECKOUT] Creating PayPal order...')
       
       // Enhanced URL resolution with production failsafes
       let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'
@@ -117,17 +107,14 @@ export default async function handler(req, res) {
         if (isNetlify) {
           // For Netlify, try to get the deploy URL
           productionUrl = process.env.DEPLOY_PRIME_URL || process.env.DEPLOY_URL
-          console.log('[CHECKOUT] Attempting Netlify URL fallback:', productionUrl)
         } else if (isVercel) {
           // For Vercel, construct from VERCEL_URL
           productionUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
-          console.log('[CHECKOUT] Attempting Vercel URL fallback:', productionUrl)
         }
         
         // Use production URL if found, otherwise force a reasonable default
         if (productionUrl && !productionUrl.includes('localhost')) {
           baseUrl = productionUrl
-          console.log('[CHECKOUT] ✅ Using platform URL fallback:', baseUrl)
         } else {
           // Last resort: use a reasonable production URL
           baseUrl = 'https://mjkprints.store'
@@ -136,7 +123,6 @@ export default async function handler(req, res) {
       }
       
       // Debug logging for URL resolution
-      console.log('[CHECKOUT] Environment URL resolution:', {
         NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
         resolvedBaseUrl: baseUrl,
         isProduction,
@@ -163,19 +149,15 @@ export default async function handler(req, res) {
       }
       
       // Debug logging for generated URLs
-      console.log('[CHECKOUT] Generated PayPal URLs:', {
         successUrl: `${baseUrl}/success?paypal_order_id={order_id}&order_id=${order.id}`,
         cancelUrl: `${baseUrl}/cart?canceled=true`,
         paypalOrderId: paypalOrder.id,
         approvalUrl
       })
-      console.log('[CHECKOUT] PayPal order created successfully:', paypalOrder.id)
 
       // Update order with PayPal order ID
-      console.log('[CHECKOUT] Updating database order with PayPal order ID...')
       await updateOrderWithPayPalId(order.id, paypalOrder.id)
 
-      console.log('[CHECKOUT] Checkout session completed successfully')
       res.status(200).json({
         paypalOrderId: paypalOrder.id,
         approvalUrl: approvalUrl,

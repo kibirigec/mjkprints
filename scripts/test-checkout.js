@@ -25,7 +25,6 @@ const colors = {
 };
 
 function log(color, message) {
-  console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
 // Sample test data - using real products from the database

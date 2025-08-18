@@ -47,7 +47,6 @@ export default function CartPage() {
   }
 
   const handlePayPalCreateOrder = async () => {
-    console.log('🛒 Starting PayPal order creation...', { 
       email, 
       cartItems: cart.length,
       timestamp: new Date().toISOString(),
@@ -57,13 +56,11 @@ export default function CartPage() {
     // Validate email
     const emailValidationError = validateEmail(email)
     if (emailValidationError) {
-      console.log('❌ Email validation failed:', email)
       setEmailError(emailValidationError)
       throw new Error(emailValidationError)
     }
 
     try {
-      console.log('📡 Creating PayPal checkout session...')
       const response = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: {
@@ -85,7 +82,6 @@ export default function CartPage() {
         }),
       })
 
-      console.log('📡 Checkout API response status:', response.status)
       
       if (!response.ok) {
         const errorText = await response.text()
@@ -100,12 +96,10 @@ export default function CartPage() {
       }
 
       const responseData = await response.json()
-      console.log('📡 Checkout API response data:', responseData)
       
       const { paypalOrderId, error } = responseData
 
       if (paypalOrderId) {
-        console.log('🏪 PayPal order created successfully:', paypalOrderId)
         return paypalOrderId
       } else {
         console.error('❌ PayPal order creation failed:', error)
@@ -118,19 +112,16 @@ export default function CartPage() {
   }
 
   const handlePayPalApprove = async (data, actions) => {
-    console.log('💰 PayPal payment approved:', data.orderID)
     setIsCheckingOut(true)
     
     try {
       // Capture the payment
       const details = await actions.order.capture()
-      console.log('💳 PayPal payment captured:', details)
       
       // Find the order ID from our database
       const orderId = details.purchase_units?.[0]?.reference_id
       
       if (orderId) {
-        console.log('✅ Payment successful, redirecting to success page')
         // Clear the cart and redirect to success page
         clearCart()
         router.push(`/success?paypal_order_id=${data.orderID}&order_id=${orderId}`)
@@ -375,13 +366,11 @@ export default function CartPage() {
                             intent: "capture"
                           }}
                           onLoadStart={() => {
-                            console.log('PayPal script loading started')
                             setPaypalLoading(true)
                             setPaypalLoaded(false)
                             setPaypalError(null)
                           }}
                           onLoad={() => {
-                            console.log('PayPal script loaded successfully')
                             setPaypalLoading(false)
                             setPaypalLoaded(true)
                             setPaypalError(null)
@@ -408,11 +397,9 @@ export default function CartPage() {
                             onApprove={handlePayPalApprove}
                             onError={handlePayPalError}
                             onCancel={() => {
-                              console.log('PayPal payment cancelled')
                               setIsCheckingOut(false)
                             }}
                             onInit={(data, actions) => {
-                              console.log('PayPal button initialized - guest checkout enabled')
                               // Suppress common PayPal session warnings
                               const originalWarn = console.warn
                               console.warn = (...args) => {

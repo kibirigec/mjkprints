@@ -18,9 +18,7 @@ import React, { useState, useCallback, useRef } from 'react'
  * 
  * Usage:
  * <ImageUploadZone
- *   onUploadComplete={(file) => console.log('Upload complete:', file)}
  *   onUploadError={(error) => console.error('Upload error:', error)}
- *   onUploadProgress={(progress) => console.log('Progress:', progress)}
  *   showPreview={true}
  * />
  */

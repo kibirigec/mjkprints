@@ -5,15 +5,10 @@ import { MailerSend, EmailParams, Sender, Recipient } from 'mailersend'
 dotenv.config({ path: '.env.local' })
 
 const testSimpleEmail = async () => {
-  console.log('🧪 Testing MailerSend with simple email (no attachments)...')
   
   // Debug environment variables
-  console.log('📋 Environment check:')
-  console.log('- MAILERSEND_API_KEY:', process.env.MAILERSEND_API_KEY ? `✅ Set (${process.env.MAILERSEND_API_KEY.substring(0, 10)}...)` : '❌ Missing')
-  console.log('- MAILERSEND_FROM_EMAIL:', process.env.MAILERSEND_FROM_EMAIL || '❌ Missing')
   
   if (!process.env.MAILERSEND_API_KEY) {
-    console.log('❌ API key not found')
     return
   }
 
@@ -38,11 +33,7 @@ const testSimpleEmail = async () => {
       `)
       .setText('Test email from MJK Prints. If you receive this, the email system is working!')
 
-    console.log('📧 Sending simple test email...')
     const result = await mailerSend.email.send(emailParams)
-    console.log('✅ Email sent successfully!')
-    console.log('📧 Check calvin@kibirige.net for the test email')
-    console.log('Response:', result)
 
   } catch (error) {
     console.error('❌ Email sending failed:')

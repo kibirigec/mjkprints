@@ -72,7 +72,6 @@ export default async function handler(req, res) {
       timestamp: Date.now()
     }
 
-    console.log('[DEBUG-ENV] Environment check requested:', {
       siteUrl: environmentInfo.siteUrlConfig.NEXT_PUBLIC_SITE_URL,
       platform: environmentInfo.deploymentPlatform,
       isProduction: environmentInfo.isProduction

@@ -262,7 +262,6 @@ export async function getStaticProps() {
       revalidate: 60,
     }
   } catch (error) {
-    console.log('Error fetching products:', error)
     return {
       props: {
         featuredProducts: [],

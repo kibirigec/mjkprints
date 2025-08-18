@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🔍 Debugging image relationships...\n')
 
     // Test the exact same query as getAllProducts()
     const { data, error } = await supabase
@@ -49,7 +48,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Database query failed', details: error })
     }
 
-    console.log('✅ Query successful. Found', data.length, 'products\n')
 
     const analysis = {
       totalProducts: data.length,
@@ -114,13 +112,9 @@ export default async function handler(req, res) {
 
       analysis.products.push(productAnalysis)
 
-      console.log(`📦 Product ${index + 1}: ${product.title}`)
-      console.log(`   Issues: ${productAnalysis.issues.join(', ') || 'None'}`)
-      console.log('   ---')
     })
 
     // Additional query: Find products that should have uploaded images
-    console.log('\n🔍 Looking for products with image_file_id...')
     const productsWithImageFileId = await supabase
       .from('products')
       .select('id, title, image, image_file_id')
@@ -129,7 +123,6 @@ export default async function handler(req, res) {
 
     analysis.productsWithImageFileId = productsWithImageFileId.data || []
     
-    console.log(`Found ${analysis.productsWithImageFileId.length} products with image_file_id`)
 
     // Check file_uploads table
     const fileUploadsQuery = await supabase
@@ -139,7 +132,6 @@ export default async function handler(req, res) {
       .limit(10)
 
     analysis.imageFileUploads = fileUploadsQuery.data || []
-    console.log(`Found ${analysis.imageFileUploads.length} image file uploads`)
 
     return res.status(200).json({
       success: true,

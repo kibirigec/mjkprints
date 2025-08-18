@@ -28,7 +28,6 @@ export default async function handler(req, res) {
     'paypal-transmission-time': req.headers['paypal-transmission-time']
   }
 
-  console.log('Received PayPal webhook:', {
     headers,
     payloadLength: payload.length
   })
@@ -43,7 +42,6 @@ export default async function handler(req, res) {
     }
 
     const event = JSON.parse(payload)
-    console.log('PayPal webhook event type:', event.event_type)
 
     // Handle different event types
     switch (event.event_type) {
@@ -60,7 +58,6 @@ export default async function handler(req, res) {
         break
 
       default:
-        console.log(`Unhandled PayPal event type: ${event.event_type}`)
     }
 
     res.status(200).json({ received: true })
@@ -73,7 +70,6 @@ export default async function handler(req, res) {
 
 async function handleOrderApproved(event) {
   try {
-    console.log('[PAYPAL WEBHOOK] Processing order approval')
     
     const order = event.resource
     const orderId = order.purchase_units?.[0]?.reference_id
@@ -84,7 +80,6 @@ async function handleOrderApproved(event) {
       return
     }
 
-    console.log(`[PAYPAL WEBHOOK] Order approved: ${orderId}, Email: ${payerEmail}`)
 
     // Update order status to approved (waiting for capture)
     await updateOrderStatus(
@@ -93,7 +88,6 @@ async function handleOrderApproved(event) {
       order.id
     )
 
-    console.log('[PAYPAL WEBHOOK] Order status updated to approved')
 
   } catch (error) {
     console.error('[PAYPAL WEBHOOK] Error processing order approval:', error)
@@ -102,7 +96,6 @@ async function handleOrderApproved(event) {
 
 async function handlePaymentCaptureCompleted(event) {
   try {
-    console.log('[PAYPAL WEBHOOK] Starting payment capture completion processing')
     
     const capture = event.resource
     const orderId = capture.supplementary_data?.related_ids?.order_id
@@ -112,12 +105,10 @@ async function handlePaymentCaptureCompleted(event) {
     
     if (!dbOrderId && orderId) {
       // If we have the PayPal order ID, look it up in our database
-      console.log('[PAYPAL WEBHOOK] Attempting to find order by PayPal order ID:', orderId)
       try {
         const orderRecord = await getOrderByPayPalId(orderId)
         if (orderRecord) {
           dbOrderId = orderRecord.id
-          console.log('[PAYPAL WEBHOOK] Found order by PayPal ID lookup:', dbOrderId)
         }
       } catch (lookupError) {
         console.error('[PAYPAL WEBHOOK] Error looking up order by PayPal ID:', lookupError.message)
@@ -132,20 +123,15 @@ async function handlePaymentCaptureCompleted(event) {
     }
 
     const payerEmail = capture.payer?.email_address
-    console.log(`[PAYPAL WEBHOOK] Processing completed payment for order: ${dbOrderId}`)
-    console.log(`[PAYPAL WEBHOOK] Payer email: ${payerEmail}`)
 
     // Update order status to completed
-    console.log('[PAYPAL WEBHOOK] Updating order status to completed...')
     const updatedOrder = await updateOrderStatus(
       dbOrderId, 
       'completed', 
       capture.id
     )
-    console.log('[PAYPAL WEBHOOK] Order status updated successfully')
 
     // Get order details with items
-    console.log('[PAYPAL WEBHOOK] Fetching order details with items...')
     const orderWithItems = await getOrderById(dbOrderId)
 
     if (!orderWithItems) {
@@ -159,8 +145,6 @@ async function handlePaymentCaptureCompleted(event) {
       return
     }
 
-    console.log(`[PAYPAL WEBHOOK] Processing order items for attachment delivery: ${dbOrderId}`)
-    console.log(`[PAYPAL WEBHOOK] Found ${orderWithItems.order_items.length} order items`)
     
     // Try to get files for email attachment first
     let attachmentFiles = []
@@ -168,25 +152,19 @@ async function handlePaymentCaptureCompleted(event) {
     const email = payerEmail || orderWithItems.email
     
     try {
-      console.log('[PAYPAL WEBHOOK] Attempting to retrieve files for email attachment')
       attachmentFiles = await getProductFilesForAttachment(orderWithItems.order_items)
-      console.log(`[PAYPAL WEBHOOK] Retrieved ${attachmentFiles.length} files for attachment`)
       
       // Always create download links as backup
       downloadLinks = await createDownloadLinks(orderWithItems.order_items, email)
-      console.log(`[PAYPAL WEBHOOK] Created ${downloadLinks.length} backup download links`)
       
     } catch (fileError) {
       console.error('[PAYPAL WEBHOOK] Error retrieving files for attachment:', fileError.message)
-      console.log('[PAYPAL WEBHOOK] Falling back to download links only')
       
       // Fallback to download links if file retrieval fails
       downloadLinks = await createDownloadLinks(orderWithItems.order_items, email)
     }
 
     // Send order confirmation email with attachments and/or download links
-    console.log('[PAYPAL WEBHOOK] Preparing to send order confirmation email...')
-    console.log('[PAYPAL WEBHOOK] Email details:', {
       recipient: email,
       orderId: dbOrderId,
       attachmentCount: attachmentFiles.length,
@@ -200,7 +178,6 @@ async function handlePaymentCaptureCompleted(event) {
     )
     
     if (emailResult.success) {
-      console.log(`[PAYPAL WEBHOOK] ✅ Order confirmation email sent successfully for order: ${dbOrderId}`, {
         recipient: email,
         attachmentCount: attachmentFiles.length,
         downloadLinkCount: downloadLinks.length,
@@ -224,7 +201,6 @@ async function handlePaymentCaptureCompleted(event) {
 
 async function handlePaymentCaptureDenied(event) {
   try {
-    console.log('[PAYPAL WEBHOOK] Processing payment capture denial')
     
     const capture = event.resource
     const dbOrderId = capture.custom_id
@@ -234,7 +210,6 @@ async function handlePaymentCaptureDenied(event) {
       return
     }
 
-    console.log(`[PAYPAL WEBHOOK] Payment denied for order: ${dbOrderId}`)
 
     // Update order status to failed
     await updateOrderStatus(
@@ -243,7 +218,6 @@ async function handlePaymentCaptureDenied(event) {
       capture.id
     )
 
-    console.log('[PAYPAL WEBHOOK] Order status updated to failed')
 
   } catch (error) {
     console.error('[PAYPAL WEBHOOK] Error processing payment capture denial:', error)

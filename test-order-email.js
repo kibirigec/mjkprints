@@ -6,13 +6,8 @@ dotenv.config({ path: '.env.local' })
 
 // Test order confirmation email without attachments
 const testOrderEmail = async () => {
-  console.log('🧪 Testing order confirmation email (no attachments)...')
   
   // Debug: Check if environment variables are loaded
-  console.log('📋 Environment check:')
-  console.log('- MAILERSEND_API_KEY:', process.env.MAILERSEND_API_KEY ? '✅ Set' : '❌ Missing')
-  console.log('- MAILERSEND_FROM_EMAIL:', process.env.MAILERSEND_FROM_EMAIL || '❌ Missing')
-  console.log('- MAILERSEND_FROM_NAME:', process.env.MAILERSEND_FROM_NAME || '❌ Missing')
   
   // Mock order data
   const mockOrder = {
@@ -44,15 +39,10 @@ const testOrderEmail = async () => {
   const mockAttachmentFiles = []
 
   try {
-    console.log('📧 Testing order confirmation email without attachments...')
     const result = await sendOrderConfirmationEmail(mockOrder, mockDownloadLinks, mockAttachmentFiles)
     
     if (result.success) {
-      console.log('✅ Order confirmation email sent successfully!')
-      console.log('📧 Check modiqube@gmail.com for the order confirmation email')
-      console.log('🔗 This email should include download links but no attachments')
     } else {
-      console.log('❌ Email sending failed:', result.error)
     }
   } catch (error) {
     console.error('💥 Test failed:', error.message)

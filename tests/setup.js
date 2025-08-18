@@ -13,13 +13,11 @@ global.mockConsole = () => {
   const originalConsole = console
   
   beforeEach(() => {
-    console.log = jest.fn()
     console.warn = jest.fn()
     console.error = jest.fn()
   })
   
   afterEach(() => {
-    console.log = originalConsole.log
     console.warn = originalConsole.warn
     console.error = originalConsole.error
   })

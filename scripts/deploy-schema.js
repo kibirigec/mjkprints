@@ -17,20 +17,15 @@ const fs = require('fs');
 const path = require('path');
 
 async function deploySchema() {
-    console.log('🚀 MJK Prints Schema Deployment');
-    console.log('================================');
     
     // Check if .env.local exists
     const envPath = path.join(__dirname, '..', '.env.local');
     if (fs.existsSync(envPath)) {
-        console.log('✅ Environment file found');
         const envContent = fs.readFileSync(envPath, 'utf8');
         const supabaseUrl = envContent.match(/NEXT_PUBLIC_SUPABASE_URL=(.+)/)?.[1];
         if (supabaseUrl) {
-            console.log(`   Project: ${supabaseUrl}`);
         }
     } else {
-        console.log('⚠️  No .env.local file found');
     }
     
     // Read migration file
@@ -42,25 +37,8 @@ async function deploySchema() {
     }
     
     const migrationSql = fs.readFileSync(migrationPath, 'utf8');
-    console.log('✅ Migration file loaded');
-    console.log(`   Size: ${Math.round(migrationSql.length / 1024)}KB`);
     
     // Manual deployment instructions
-    console.log('\n📋 MANUAL DEPLOYMENT INSTRUCTIONS');
-    console.log('==================================');
-    console.log('Since CLI authentication failed, please apply the schema manually:');
-    console.log('');
-    console.log('1. Go to Supabase Dashboard:');
-    console.log(`   ${supabaseUrl.replace('/api/v1', '')}/project/${supabaseUrl.split('.')[0].split('//')[1]}/sql`);
-    console.log('');
-    console.log('2. Copy the migration SQL from:');
-    console.log(`   ${migrationPath}`);
-    console.log('');
-    console.log('3. Paste and execute the SQL in the Supabase SQL Editor');
-    console.log('');
-    console.log('4. Verify storage bucket creation with:');
-    console.log('   SELECT * FROM verify_storage_setup();');
-    console.log('');
     
     // Create a simplified deployment script
     const deploymentSql = `
@@ -99,12 +77,6 @@ SELECT * FROM verify_storage_setup();
     // Write quick deployment file
     const quickDeployPath = path.join(__dirname, 'quick-storage-setup.sql');
     fs.writeFileSync(quickDeployPath, deploymentSql);
-    console.log('✅ Created quick deployment file:');
-    console.log(`   ${quickDeployPath}`);
-    console.log('');
-    console.log('🎯 CRITICAL: The storage bucket creation is essential for PDF uploads to work!');
-    console.log('   Without this, you will continue to get 500 errors on PDF upload.');
-    console.log('');
 }
 
 // Run if called directly

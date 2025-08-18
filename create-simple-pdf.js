@@ -5,7 +5,6 @@ import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
 function createSimplePDF() {
-  console.log('Creating a simple test PDF...');
   
   // Ensure directory exists
   mkdirSync('tests/temp', { recursive: true });
@@ -35,8 +34,6 @@ function createSimplePDF() {
         const pdfBuffer = Buffer.concat(chunks);
         const filePath = join('tests/temp', 'simple-test.pdf');
         writeFileSync(filePath, pdfBuffer);
-        console.log(`Simple PDF created at: ${filePath}`);
-        console.log(`File size: ${pdfBuffer.length} bytes`);
         resolve(filePath);
       } catch (error) {
         reject(error);
@@ -50,7 +47,6 @@ function createSimplePDF() {
 }
 
 createSimplePDF().then(path => {
-  console.log('✅ PDF created successfully:', path);
 }).catch(error => {
   console.error('❌ Failed to create PDF:', error);
 });

@@ -23,7 +23,6 @@ export default function handler(req, res) {
     timestamp: new Date().toISOString()
   }
 
-  console.log('🔍 Environment check:', envCheck)
 
   return res.status(200).json({
     success: true,

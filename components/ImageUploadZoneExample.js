@@ -13,7 +13,6 @@ const ImageUploadZoneExample = () => {
   const [currentProgress, setCurrentProgress] = useState(0)
 
   const handleUploadComplete = (file) => {
-    console.log('Upload completed:', file)
     setUploadedFiles(prev => [...prev, file])
     setUploadStatus('Upload successful!')
     
@@ -34,12 +33,10 @@ const ImageUploadZoneExample = () => {
   }
 
   const handleUploadProgress = (progress) => {
-    console.log('Upload progress:', progress)
     setCurrentProgress(progress)
   }
 
   const handleFileSelect = (file) => {
-    console.log('File selected:', file.name, file.size)
     setUploadStatus(`Selected: ${file.name}`)
   }
 
@@ -175,7 +172,6 @@ const ImageUploadZoneExample = () => {
 
 const MyComponent = () => {
   const handleComplete = (file) => {
-    console.log('Uploaded:', file)
   }
 
   const handleError = (error) => {

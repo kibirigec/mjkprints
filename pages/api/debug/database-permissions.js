@@ -25,7 +25,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('[DB-DEBUG] Starting database permission tests...')
 
     // Test 1: Client configuration
     debugInfo.clientTests = {
@@ -191,7 +190,6 @@ export default async function handler(req, res) {
 
     debugInfo.summary.overallStatus = debugInfo.summary.criticalIssues.length === 0 ? 'READY' : 'ISSUES_FOUND'
 
-    console.log(`[DB-DEBUG] Database permission test completed:`, {
       status: debugInfo.summary.overallStatus,
       criticalIssues: debugInfo.summary.criticalIssues.length,
       adminWorking: debugInfo.summary.adminClientWorking

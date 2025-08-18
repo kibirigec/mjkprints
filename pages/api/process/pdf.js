@@ -51,7 +51,6 @@ class Path2D {
 
 // Set browser API globals IMMEDIATELY at module load time
 // This ensures they're available before PDF.js tries to access them during import
-console.log('[PDF-PROCESS] Setting browser API globals at module load...')
 try {
   if (typeof global !== 'undefined') {
     global.Canvas = Canvas
@@ -66,7 +65,6 @@ try {
     global.createCanvas = (width, height) => new Canvas(width, height)
     global.loadImage = Image.loadImage || Image.from
     
-    console.log('[PDF-PROCESS] ✅ Browser API globals set successfully:', {
       Canvas: typeof global.Canvas,
       Image: typeof global.Image,
       DOMMatrix: typeof global.DOMMatrix,
@@ -88,7 +86,6 @@ class NodeCanvasFactory {
     const canvas = new Canvas(Math.ceil(width), Math.ceil(height))
     const context = canvas.getContext('2d')
     
-    console.log(`[PDF-PROCESS] NodeCanvasFactory creating canvas: ${width}x${height}`)
     
     // Initialize canvas with white background (PDF.js expects this)
     context.fillStyle = '#ffffff'
@@ -103,8 +100,6 @@ class NodeCanvasFactory {
     context.globalAlpha = 1.0
     context.globalCompositeOperation = 'source-over'
     
-    console.log(`[PDF-PROCESS] Canvas initialized with white background: ${canvas.width}x${canvas.height}`)
-    console.log(`[PDF-PROCESS] Initial context state - fillStyle: ${context.fillStyle}, font: ${context.font}`)
     
     // Patch Canvas context to support PDF.js requirements
     this._patchCanvasContext(context)
@@ -118,18 +113,15 @@ class NodeCanvasFactory {
   reset(canvasAndContext, width, height) {
     canvasAndContext.canvas.width = Math.ceil(width)
     canvasAndContext.canvas.height = Math.ceil(height)
-    console.log(`[PDF-PROCESS] NodeCanvasFactory reset canvas: ${width}x${height}`)
   }
 
   destroy(canvasAndContext) {
     // Canvas cleanup - in Node.js, let garbage collection handle it
     canvasAndContext.canvas.width = 0
     canvasAndContext.canvas.height = 0
-    console.log('[PDF-PROCESS] NodeCanvasFactory destroyed canvas')
   }
 
   _patchCanvasContext(context) {
-    console.log('[PDF-PROCESS] Patching Canvas context for PDF.js compatibility')
     
     // PDF.js expects clip to have a rect method for clipping operations
     if (context.clip && !context.clip.rect) {
@@ -160,7 +152,6 @@ class NodeCanvasFactory {
     // Add missing Canvas API methods that PDF.js expects
     if (!context.createImageData) {
       context.createImageData = function(width, height) {
-        console.log(`[PDF-PROCESS] Creating ImageData: ${width}x${height}`)
         
         // Create proper ImageData object with specified dimensions
         if (typeof ImageData !== 'undefined') {
@@ -195,7 +186,6 @@ class NodeCanvasFactory {
 
     // Add proper font handling with better initialization
     if (!context._fontInitialized) {
-      console.log('[PDF-PROCESS] Initializing font handling')
       
       // Store original font property
       let currentFont = context.font || '10px sans-serif'
@@ -206,7 +196,6 @@ class NodeCanvasFactory {
           return this._currentFont || '10px sans-serif'
         },
         set: function(value) {
-          console.log(`[PDF-PROCESS] Setting font: ${value}`)
           this._currentFont = value
           
           // Try to apply the font to the underlying canvas context
@@ -217,7 +206,6 @@ class NodeCanvasFactory {
               descriptor.set.call(context, value)
             }
           } catch (error) {
-            console.log('[PDF-PROCESS] Font setting failed, using fallback:', error.message)
             this._currentFont = '10px sans-serif'
           }
         }
@@ -235,7 +223,6 @@ class NodeCanvasFactory {
         context.strokeStyle = '#000000' // Default to black stroke
       }
       
-      console.log(`[PDF-PROCESS] Font handling initialized - font: ${context.font}, fillStyle: ${context.fillStyle}`)
     }
 
     // Add comprehensive error handling for drawing operations
@@ -245,7 +232,6 @@ class NodeCanvasFactory {
         try {
           return originalDrawImage(...args)
         } catch (error) {
-          console.log('[PDF-PROCESS] DrawImage failed:', error.message)
           // Don't throw, just skip the drawing operation
         }
       }
@@ -258,7 +244,6 @@ class NodeCanvasFactory {
         try {
           return originalFill(...args)
         } catch (error) {
-          console.log('[PDF-PROCESS] Fill operation failed:', error.message)
         }
       }
     }
@@ -270,12 +255,10 @@ class NodeCanvasFactory {
         try {
           return originalStroke(...args)
         } catch (error) {
-          console.log('[PDF-PROCESS] Stroke operation failed:', error.message)
         }
       }
     }
 
-    console.log('[PDF-PROCESS] Canvas context patching completed')
     return context
   }
 }
@@ -294,20 +277,16 @@ async function initPdfJs() {
     try {
       // Use legacy build specifically designed for Node.js environments
       // This resolves the DOMMatrix timing issue where globals are needed during import
-      console.log('[PDF-PROCESS] Initializing PDF.js legacy build for Node.js compatibility...')
-      console.log('[PDF-PROCESS] Environment info:', {
         nodeVersion: process.version,
         platform: process.platform,
         arch: process.arch
       })
       
       pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      console.log('[PDF-PROCESS] ✅ PDF.js legacy build initialized successfully, version:', pdfjsLib.version)
       
       // Force PDF.js to run in main thread for serverless environments
       // This completely disables worker usage which isn't supported in Node.js serverless
       pdfjsLib.GlobalWorkerOptions.workerSrc = false
-      console.log('[PDF-PROCESS] ✅ PDF.js worker disabled, running in main thread for serverless compatibility')
       
       // Validate that all required browser APIs are available
       const requiredAPIs = ['Canvas', 'Image', 'DOMMatrix', 'DOMPoint', 'ImageData', 'Path2D']
@@ -322,13 +301,11 @@ async function initPdfJs() {
       try {
         const testCanvas = new global.Canvas(10, 10)
         const testContext = testCanvas.getContext('2d')
-        console.log('[PDF-PROCESS] ✅ Canvas functionality test passed')
       } catch (canvasError) {
         console.error('[PDF-PROCESS] ❌ Canvas functionality test failed:', canvasError.message)
         throw new Error(`Canvas functionality test failed: ${canvasError.message}`)
       }
       
-      console.log('[PDF-PROCESS] ✅ All required browser APIs validated successfully')
       
     } catch (error) {
       console.error('[PDF-PROCESS] ❌ Failed to initialize PDF.js:', {
@@ -351,13 +328,11 @@ const TEMP_DIR = '/tmp/pdf-processing'
 
 // Check system ImageMagick availability for PDF conversion
 const checkSystemImageMagickAvailability = async () => {
-  console.log('[PDF-PROCESS] Checking system ImageMagick availability...')
   
   try {
     const isAvailable = await checkImageMagickAvailability()
     const info = await getImageMagickInfo()
     
-    console.log('[PDF-PROCESS] ImageMagick status:', {
       available: isAvailable,
       version: info.version,
       supportsPDF: info.supportsPDF,
@@ -433,7 +408,6 @@ const getPDFDimensions = async (pdfBuffer) => {
     
     // Convert Buffer to Uint8Array for PDF.js compatibility
     const uint8Array = new Uint8Array(pdfBuffer)
-    console.log(`[PDF-PROCESS] Extracting dimensions from PDF (${uint8Array.length} bytes)`)
     
     let pdf
     try {
@@ -443,7 +417,6 @@ const getPDFDimensions = async (pdfBuffer) => {
         disableWorker: true,
         canvasFactory: new NodeCanvasFactory()
       }).promise
-      console.log(`[PDF-PROCESS] ✅ PDF document loaded for dimensions extraction`)
     } catch (loadError) {
       console.error(`[PDF-PROCESS] ❌ PDF document loading failed during dimensions extraction:`, {
         message: loadError.message,
@@ -476,8 +449,6 @@ const getPDFDimensions = async (pdfBuffer) => {
 
 // Convert PDF page to image buffer with multiple fallback strategies
 const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, magickAvailable = false) => {
-  console.log(`[PDF-PROCESS] ======= STARTING PDF TO IMAGE CONVERSION =======`)
-  console.log(`[PDF-PROCESS] Page: ${pageNumber}, Scale: ${scale}, Buffer: ${pdfBuffer.length} bytes, ImageMagick: ${magickAvailable}`)
   
   // Validate inputs
   if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -485,7 +456,6 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
   }
   
   if (scale <= 0 || scale > 5.0) {
-    console.log(`[PDF-PROCESS] Scale ${scale} is out of safe range, adjusting to 2.0`)
     scale = 2.0
   }
   
@@ -503,7 +473,6 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
   strategies.push({ name: 'Basic Canvas', func: createBasicCanvasImage })
   strategies.push({ name: 'Placeholder', func: createPlaceholderImage })
   
-  console.log(`[PDF-PROCESS] Available conversion strategies: ${strategies.map(s => s.name).join(', ')}`)
   
   let lastError = null
   let strategyResults = []
@@ -513,14 +482,11 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
     const strategyStart = Date.now()
     
     try {
-      console.log(`[PDF-PROCESS] ======= ATTEMPTING STRATEGY ${i + 1}: ${strategy.name.toUpperCase()} =======`)
       
       // All strategies now use the same parameter format
       const result = await strategy.func(pdfBuffer, pageNumber, scale)
       const strategyTime = Date.now() - strategyStart
       
-      console.log(`[PDF-PROCESS] ✅ Strategy ${i + 1} (${strategy.name}) SUCCESS in ${strategyTime}ms`)
-      console.log(`[PDF-PROCESS] Result buffer size: ${result.length} bytes`)
       
       // Validate result
       if (result.length < 1000) {
@@ -534,7 +500,6 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
         bufferSize: result.length
       })
       
-      console.log(`[PDF-PROCESS] ======= CONVERSION SUCCESSFUL =======`)
       return result
       
     } catch (error) {
@@ -570,15 +535,12 @@ const convertPDFPageToImage = async (pdfBuffer, pageNumber = 1, scale = 2.0, mag
 
 // PDF.js + Canvas rendering (works for simple PDFs)
 const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
-  console.log(`[PDF-PROCESS] Starting full Canvas rendering for page ${pageNumber}`)
   
   try {
     const pdfjs = await initPdfJs()
     const uint8Array = new Uint8Array(pdfBuffer)
     const canvasFactory = new NodeCanvasFactory()
     
-    console.log(`[PDF-PROCESS] Loading PDF document (${uint8Array.length} bytes)`)
-    console.log(`[PDF-PROCESS] PDF.js getDocument options:`, {
       dataLength: uint8Array.length,
       isEvalSupported: false,
       disableWorker: true,
@@ -593,7 +555,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
         disableWorker: true,
         canvasFactory: canvasFactory
       }).promise
-      console.log(`[PDF-PROCESS] ✅ PDF document loaded successfully`)
     } catch (loadError) {
       console.error(`[PDF-PROCESS] ❌ PDF document loading failed:`, {
         message: loadError.message,
@@ -602,7 +563,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
       throw new Error(`PDF document loading failed: ${loadError.message}`)
     }
     
-    console.log(`[PDF-PROCESS] PDF loaded, total pages: ${pdf.numPages}`)
     
     if (pageNumber > pdf.numPages) {
       throw new Error(`Requested page ${pageNumber} exceeds total pages ${pdf.numPages}`)
@@ -611,17 +571,13 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     const page = await pdf.getPage(pageNumber)
     const viewport = page.getViewport({ scale })
     
-    console.log(`[PDF-PROCESS] Page ${pageNumber} viewport: ${viewport.width}x${viewport.height}`)
 
     // Use NodeCanvasFactory to create canvas (fixes "Image or Canvas expected" error)
     const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
     const { canvas, context } = canvasAndContext
     
-    console.log(`[PDF-PROCESS] Canvas created successfully: ${canvas.width}x${canvas.height}`)
-    console.log(`[PDF-PROCESS] Canvas context type:`, context.constructor.name)
     
     // Check canvas context capabilities
-    console.log(`[PDF-PROCESS] Canvas context capabilities:`, {
       drawImage: typeof context.drawImage,
       fillRect: typeof context.fillRect,
       fillStyle: typeof context.fillStyle,
@@ -632,7 +588,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     })
 
     // Initialize canvas context state before rendering
-    console.log(`[PDF-PROCESS] Pre-render context initialization`)
     context.save() // Save initial state
     
     // Set up proper rendering environment
@@ -647,7 +602,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     context.lineJoin = 'miter'
     context.lineWidth = 1
     
-    console.log(`[PDF-PROCESS] Context state set - fillStyle: ${context.fillStyle}, font: ${context.font}`)
 
     // Render PDF page to canvas with enhanced configuration
     const renderContext = {
@@ -666,8 +620,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
       optionalContentConfigPromise: null
     }
 
-  console.log(`[PDF-PROCESS] Rendering page ${pageNumber} with viewport: ${viewport.width}x${viewport.height}, scale: ${scale}`)
-  console.log(`[PDF-PROCESS] Render context:`, {
     viewport: `${viewport.width}x${viewport.height}`,
     intent: renderContext.intent,
     renderInteractiveForms: renderContext.renderInteractiveForms,
@@ -676,27 +628,16 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
   })
   
   try {
-    console.log(`[PDF-PROCESS] Starting page.render() call...`)
-    console.log(`[PDF-PROCESS] Pre-render canvas state:`)
-    console.log(`[PDF-PROCESS] - Canvas: ${canvas.width}x${canvas.height}`)
-    console.log(`[PDF-PROCESS] - FillStyle: ${context.fillStyle}`)
-    console.log(`[PDF-PROCESS] - Font: ${context.font}`)
     
     const renderPromise = page.render(renderContext)
     await renderPromise.promise
     
-    console.log(`[PDF-PROCESS] Page ${pageNumber} rendered successfully`)
     
     // Restore context state after rendering
     context.restore()
     
-    console.log(`[PDF-PROCESS] Post-render canvas state:`)
-    console.log(`[PDF-PROCESS] - Canvas: ${canvas.width}x${canvas.height}`)
-    console.log(`[PDF-PROCESS] - FillStyle: ${context.fillStyle}`)
-    console.log(`[PDF-PROCESS] - Font: ${context.font}`)
     
     // Comprehensive Canvas content analysis
-    console.log(`[PDF-PROCESS] ======= CANVAS CONTENT ANALYSIS =======`)
     
     // Sample multiple areas of the canvas
     const sampleSize = Math.min(20, canvas.width, canvas.height)
@@ -738,12 +679,10 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
           totalPixels++
         }
         
-        console.log(`[PDF-PROCESS] Sample ${sample.name} (${sample.x},${sample.y}): ${nonWhitePixels}/${imageData.data.length/4} non-white pixels, ${uniqueColors.size} unique colors`)
         
         // Log some unique colors found
         if (uniqueColors.size > 1) {
           const colorArray = Array.from(uniqueColors).slice(0, 5)
-          console.log(`[PDF-PROCESS] Sample ${sample.name} colors:`, colorArray)
         }
       } catch (sampleError) {
         console.error(`[PDF-PROCESS] Failed to sample ${sample.name}:`, sampleError.message)
@@ -751,21 +690,8 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     }
     
     const contentPercentage = totalPixels > 0 ? (totalNonWhitePixels / totalPixels * 100).toFixed(2) : 0
-    console.log(`[PDF-PROCESS] Overall canvas analysis:`)
-    console.log(`[PDF-PROCESS] - Canvas size: ${canvas.width}x${canvas.height}`)
-    console.log(`[PDF-PROCESS] - Total sampled pixels: ${totalPixels}`)
-    console.log(`[PDF-PROCESS] - Non-white pixels: ${totalNonWhitePixels}`)
-    console.log(`[PDF-PROCESS] - Content percentage: ${contentPercentage}%`)
-    console.log(`[PDF-PROCESS] - Has meaningful content: ${totalNonWhitePixels > 10}`)
     
     // Additional Canvas state inspection
-    console.log(`[PDF-PROCESS] Canvas context state:`)
-    console.log(`[PDF-PROCESS] - fillStyle: ${context.fillStyle}`)
-    console.log(`[PDF-PROCESS] - strokeStyle: ${context.strokeStyle}`)
-    console.log(`[PDF-PROCESS] - font: ${context.font}`)
-    console.log(`[PDF-PROCESS] - textAlign: ${context.textAlign}`)
-    console.log(`[PDF-PROCESS] - globalAlpha: ${context.globalAlpha}`)
-    console.log(`[PDF-PROCESS] =======================================`)
     
   } catch (renderError) {
     console.error(`[PDF-PROCESS] Page ${pageNumber} render error:`, renderError.message)
@@ -779,14 +705,11 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     }
     
     try {
-      console.log(`[PDF-PROCESS] Attempting fallback render with print intent...`)
       await page.render(fallbackContext).promise
-      console.log(`[PDF-PROCESS] Page ${pageNumber} rendered with fallback settings`)
       
       // Check fallback canvas content
       const fallbackImageData = context.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height))
       const fallbackHasContent = fallbackImageData.data.some(pixel => pixel !== 255)
-      console.log(`[PDF-PROCESS] Fallback canvas content check - hasContent: ${fallbackHasContent}`)
       
     } catch (fallbackError) {
       console.error(`[PDF-PROCESS] Fallback render also failed:`, fallbackError.message)
@@ -799,7 +722,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     console.warn(`[PDF-PROCESS] WARNING: Canvas appears to be mostly empty (${totalNonWhitePixels} non-white pixels)`)
     
     // Try to manually draw some test content to verify Canvas is working
-    console.log(`[PDF-PROCESS] Testing Canvas functionality...`)
     context.save()
     context.fillStyle = '#ff0000' // Red
     context.fillRect(50, 50, 100, 100)
@@ -810,7 +732,6 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
     // Check if test content appears
     const testImageData = context.getImageData(60, 60, 50, 50)
     const testHasContent = testImageData.data.some(pixel => pixel !== 255)
-    console.log(`[PDF-PROCESS] Canvas test draw result: ${testHasContent ? 'SUCCESS - Canvas working' : 'FAILED - Canvas not working'}`)
     
     context.restore()
     
@@ -820,13 +741,10 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
   }
 
   // Final canvas state check before returning buffer
-  console.log(`[PDF-PROCESS] Converting canvas to JPEG buffer...`)
   const buffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
-  console.log(`[PDF-PROCESS] JPEG buffer created: ${buffer.length} bytes`)
   
   // Additional debug: Check if buffer is a valid image (basic check)
   const isValidImageHeader = buffer.length > 10 && buffer[0] === 0xFF && buffer[1] === 0xD8 // JPEG header
-  console.log(`[PDF-PROCESS] Buffer validation - Valid JPEG header: ${isValidImageHeader}, Size: ${buffer.length} bytes`)
   
   // Warn if buffer seems unusually small (likely empty/white image)
   if (buffer.length < 5000) {
@@ -849,15 +767,12 @@ const convertPDFPageWithCanvas = async (pdfBuffer, pageNumber, scale) => {
 
 // Simplified PDF rendering (skip complex elements)
 const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
-  console.log(`[PDF-PROCESS] ======= STARTING SIMPLIFIED PDF RENDERING =======`)
-  console.log(`[PDF-PROCESS] Page: ${pageNumber}, Scale: ${scale}, Buffer: ${pdfBuffer.length} bytes`)
   
   try {
     const pdfjs = await initPdfJs()
     const uint8Array = new Uint8Array(pdfBuffer)
     const canvasFactory = new NodeCanvasFactory()
     
-    console.log(`[PDF-PROCESS] Loading PDF document...`)
     let pdf
     try {
       pdf = await pdfjs.getDocument({ 
@@ -866,7 +781,6 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
         disableWorker: true,
         canvasFactory: canvasFactory
       }).promise
-      console.log(`[PDF-PROCESS] ✅ PDF document loaded successfully`)
     } catch (loadError) {
       console.error(`[PDF-PROCESS] ❌ PDF document loading failed:`, {
         message: loadError.message,
@@ -875,17 +789,14 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
       throw new Error(`PDF document loading failed: ${loadError.message}`)
     }
     
-    console.log(`[PDF-PROCESS] PDF loaded, getting page ${pageNumber}...`)
     const page = await pdf.getPage(pageNumber)
     const viewport = page.getViewport({ scale })
 
-    console.log(`[PDF-PROCESS] Page viewport: ${viewport.width}x${viewport.height}`)
 
     // Use NodeCanvasFactory to create canvas with white background
     const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
     const { canvas, context } = canvasAndContext
     
-    console.log(`[PDF-PROCESS] Canvas created: ${canvas.width}x${canvas.height}`)
     
     // Fill with white background
     context.fillStyle = '#ffffff'
@@ -903,8 +814,6 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
       background: 'white'
     }
 
-    console.log(`[PDF-PROCESS] Attempting simplified render for page ${pageNumber}`)
-    console.log(`[PDF-PROCESS] Simplified render context:`, {
       viewport: `${viewport.width}x${viewport.height}`,
       intent: renderContext.intent,
       background: renderContext.background
@@ -912,17 +821,14 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
 
     try {
       await page.render(renderContext).promise
-      console.log(`[PDF-PROCESS] ✅ Simplified render successful for page ${pageNumber}`)
       
       // Check if simplified canvas has content
       const imageData = context.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height))
       const hasContent = imageData.data.some(pixel => pixel !== 255)
-      console.log(`[PDF-PROCESS] Simplified canvas content check - hasContent: ${hasContent}`)
       
     } catch (renderError) {
       // If rendering fails, at least return a white canvas with some indication
       console.warn(`[PDF-PROCESS] ⚠️  Simplified render failed, creating basic white canvas: ${renderError.message}`)
-      console.log(`[PDF-PROCESS] Simplified render error details:`, {
         name: renderError.name,
         message: renderError.message,
         stack: renderError.stack?.substring(0, 200)
@@ -941,9 +847,7 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
       }
     }
 
-    console.log(`[PDF-PROCESS] Converting simplified canvas to JPEG buffer...`)
     const buffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
-    console.log(`[PDF-PROCESS] ✅ Simplified JPEG buffer created: ${buffer.length} bytes`)
     
     return buffer
     
@@ -961,8 +865,6 @@ const convertPDFPageSimplified = async (pdfBuffer, pageNumber, scale) => {
 
 // Create basic canvas image without PDF.js (emergency fallback)
 const createBasicCanvasImage = async (pdfBuffer, pageNumber, scale = 2.0) => {
-  console.log(`[PDF-PROCESS] ======= CREATING BASIC CANVAS IMAGE =======`)
-  console.log(`[PDF-PROCESS] Page: ${pageNumber}, Scale: ${scale}`)
   
   try {
     // Create a reasonable sized canvas based on scale
@@ -971,7 +873,6 @@ const createBasicCanvasImage = async (pdfBuffer, pageNumber, scale = 2.0) => {
     const width = Math.round(baseWidth * scale * 0.75) // Convert points to pixels (72 DPI to ~150 DPI)
     const height = Math.round(baseHeight * scale * 0.75)
     
-    console.log(`[PDF-PROCESS] Creating basic canvas: ${width}x${height}`)
     
     const canvas = new Canvas(width, height)
     const context = canvas.getContext('2d')
@@ -1022,7 +923,6 @@ const createBasicCanvasImage = async (pdfBuffer, pageNumber, scale = 2.0) => {
     }
     
     const buffer = canvas.toBuffer('image/jpeg', { quality: 0.8 })
-    console.log(`[PDF-PROCESS] ✅ Basic canvas image created: ${buffer.length} bytes`)
     return buffer
     
   } catch (error) {
@@ -1033,7 +933,6 @@ const createBasicCanvasImage = async (pdfBuffer, pageNumber, scale = 2.0) => {
 
 // Create placeholder image with PDF information
 const createPlaceholderImage = async (pdfBuffer, pageNumber) => {
-  console.log(`[PDF-PROCESS] Creating placeholder image for page ${pageNumber}`)
   
   try {
     // Standard A4 dimensions at 150 DPI
@@ -1043,7 +942,6 @@ const createPlaceholderImage = async (pdfBuffer, pageNumber) => {
     const canvas = new Canvas(width, height)
     const context = canvas.getContext('2d')
     
-    console.log(`[PDF-PROCESS] Placeholder canvas created: ${width}x${height}`)
     
     // White background
     context.fillStyle = '#ffffff'
@@ -1079,14 +977,12 @@ const createPlaceholderImage = async (pdfBuffer, pageNumber) => {
     }
     
     const buffer = canvas.toBuffer('image/jpeg', { quality: 0.9 })
-    console.log(`[PDF-PROCESS] ✅ Placeholder image created: ${buffer.length} bytes`)
     return buffer
     
   } catch (error) {
     console.error(`[PDF-PROCESS] ❌ Placeholder creation failed:`, error.message)
     
     // Ultra-simple fallback: create a minimal valid JPEG
-    console.log(`[PDF-PROCESS] Creating minimal fallback image...`)
     
     try {
       // Create smallest possible canvas
@@ -1110,15 +1006,11 @@ const generatePreviewImages = async (pdfBuffer, fileId, magickAvailable = false)
   const previewUrls = {}
   
   try {
-    console.log(`[PDF-PROCESS] ======= STARTING PREVIEW GENERATION =======`)
-    console.log(`[PDF-PROCESS] FileID: ${fileId}, PDF Buffer: ${pdfBuffer.length} bytes, ImageMagick Available: ${magickAvailable}`)
     
-    console.log(`[PDF-PROCESS] Converting first page to high-res image (scale: 3.0)`)
     // Convert first page to high-res image
     let highResImage
     try {
       highResImage = await convertPDFPageToImage(pdfBuffer, 1, 3.0, magickAvailable)
-      console.log(`[PDF-PROCESS] ✅ High-res image generated successfully: ${highResImage.length} bytes`)
     } catch (conversionError) {
       console.error(`[PDF-PROCESS] ❌ PDF to image conversion failed:`, {
         message: conversionError.message,
@@ -1129,10 +1021,8 @@ const generatePreviewImages = async (pdfBuffer, fileId, magickAvailable = false)
     }
     
     // Generate different sizes using Sharp
-    console.log(`[PDF-PROCESS] Creating preview sizes:`, Object.keys(PREVIEW_SIZES))
     for (const [size, dimensions] of Object.entries(PREVIEW_SIZES)) {
       try {
-        console.log(`[PDF-PROCESS] Creating ${size} preview (${dimensions.width}x${dimensions.height})`)
         
         const resizedImage = await sharp(highResImage)
           .resize(dimensions.width, dimensions.height, {
@@ -1142,15 +1032,12 @@ const generatePreviewImages = async (pdfBuffer, fileId, magickAvailable = false)
           .jpeg({ quality: 85 })
           .toBuffer()
 
-        console.log(`[PDF-PROCESS] ✅ Resized image for ${size}: ${resizedImage.length} bytes`)
 
         // Upload to storage
         const storagePath = `previews/${fileId}/page-1-${size}.jpg`
-        console.log(`[PDF-PROCESS] Uploading ${size} preview to: ${storagePath}`)
         
         try {
           await uploadFileToStorage(resizedImage, storagePath, 'image/jpeg')
-          console.log(`[PDF-PROCESS] ✅ Successfully uploaded ${size} preview`)
           previewUrls[size] = storagePath
         } catch (uploadError) {
           console.error(`[PDF-PROCESS] ❌ Upload failed for ${size} preview:`, uploadError.message)
@@ -1166,7 +1053,6 @@ const generatePreviewImages = async (pdfBuffer, fileId, magickAvailable = false)
       }
     }
 
-    console.log(`[PDF-PROCESS] ✅ All preview images generated successfully:`, Object.keys(previewUrls))
     return previewUrls
   } catch (error) {
     console.error(`[PDF-PROCESS] ❌ Preview generation failed:`, {
@@ -1185,12 +1071,10 @@ const generatePlaceholderPreview = async (fileId) => {
   const previewUrls = {}
   
   try {
-    console.log(`[PDF-PROCESS] Generating placeholder preview for file: ${fileId}`)
     
     // Create placeholder images for each size
     for (const [size, dimensions] of Object.entries(PREVIEW_SIZES)) {
       try {
-        console.log(`[PDF-PROCESS] Creating placeholder ${size} (${dimensions.width}x${dimensions.height})`)
         
         // Create placeholder image using Canvas
         const canvas = new Canvas(dimensions.width, dimensions.height)
@@ -1229,10 +1113,8 @@ const generatePlaceholderPreview = async (fileId) => {
         
         // Upload to storage
         const storagePath = `previews/${fileId}/placeholder-${size}.jpg`
-        console.log(`[PDF-PROCESS] Uploading placeholder ${size} to: ${storagePath}`)
         
         await uploadFileToStorage(placeholderImage, storagePath, 'image/jpeg')
-        console.log(`[PDF-PROCESS] Successfully uploaded ${size} placeholder`)
         previewUrls[size] = storagePath
         
       } catch (sizeError) {
@@ -1241,7 +1123,6 @@ const generatePlaceholderPreview = async (fileId) => {
       }
     }
 
-    console.log(`[PDF-PROCESS] Placeholder preview generation completed:`, Object.keys(previewUrls))
     return previewUrls
   } catch (error) {
     console.error(`[PDF-PROCESS] Placeholder preview generation failed:`, error.message)
@@ -1303,9 +1184,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log(`[PDF-PROCESS] ======= STARTING PDF PROCESSING =======`)
-    console.log(`[PDF-PROCESS] File ID: ${fileId}`)
-    console.log(`[PDF-PROCESS] Timestamp: ${new Date().toISOString()}`)
     
     // Check system ImageMagick availability first
     const magickStatus = await checkSystemImageMagickAvailability()
@@ -1316,16 +1194,13 @@ export default async function handler(req, res) {
         // Test if ImageMagick command exists
         const testAvailability = await checkImageMagickAvailability()
         if (testAvailability) {
-          console.log('[PDF-PROCESS] Overriding ImageMagick availability - command exists and works')
           magickStatus.imagemagick = true
         }
       } catch (error) {
-        console.log('[PDF-PROCESS] ImageMagick override test failed:', error.message)
       }
     }
     
     // Log environment information for debugging
-    console.log('[PDF-PROCESS] Environment check:', {
       nodeEnv: process.env.NODE_ENV,
       platform: process.platform,
       nodeVersion: process.version,
@@ -1344,12 +1219,9 @@ export default async function handler(req, res) {
     ensureTempDir()
 
     // Get file upload record - this is the critical step that might fail
-    console.log(`[PDF-PROCESS] Fetching file upload record for ID: ${fileId}`)
     const fileUpload = await getFileUploadById(fileId)
-    console.log(`[PDF-PROCESS] File upload record result:`, fileUpload ? 'Found' : 'Not found')
     
     if (!fileUpload) {
-      console.log(`[PDF-PROCESS] File not found: ${fileId} - returning 404`)
       return res.status(404).json({ 
         error: 'File not found',
         details: 'No file upload record found with the provided ID'
@@ -1371,54 +1243,35 @@ export default async function handler(req, res) {
       })
     }
 
-    console.log(`[PDF-PROCESS] Starting processing for file: ${fileId}`)
     
     // Update status to processing
-    console.log(`[PDF-PROCESS] Updating status to processing`)
     await updateFileProcessingStatus(fileId, 'processing')
 
     // Download file from storage
-    console.log(`[PDF-PROCESS] Downloading file from storage: ${fileUpload.storage_path}`)
     const pdfBuffer = await downloadFileFromStorage(fileUpload.storage_path)
-    console.log(`[PDF-PROCESS] Downloaded ${pdfBuffer.length} bytes`)
 
     // Extract PDF metadata
-    console.log(`[PDF-PROCESS] Extracting PDF metadata`)
     const metadata = await extractPDFMetadata(pdfBuffer)
-    console.log(`[PDF-PROCESS] Metadata extracted:`, { pageCount: metadata.pageCount })
 
     // Get PDF dimensions
-    console.log(`[PDF-PROCESS] Getting PDF dimensions`)
     const dimensions = await getPDFDimensions(pdfBuffer)
-    console.log(`[PDF-PROCESS] Dimensions:`, dimensions)
 
     // Add PDF content analysis for debugging
-    console.log(`[PDF-PROCESS] ======= PDF CONTENT ANALYSIS =======`)
-    console.log(`[PDF-PROCESS] PDF buffer size: ${pdfBuffer.length} bytes`)
-    console.log(`[PDF-PROCESS] PDF metadata:`, {
       pageCount: metadata.pageCount,
       title: metadata.title,
       author: metadata.author,
       hasTextContent: !!metadata.textContent,
       textLength: metadata.textContent?.length || 0
     })
-    console.log(`[PDF-PROCESS] PDF dimensions:`, dimensions)
     
     if (metadata.textContent) {
-      console.log(`[PDF-PROCESS] First 200 characters of text:`, metadata.textContent.substring(0, 200))
     }
 
     // Generate preview images at different sizes
-    console.log(`[PDF-PROCESS] ======= GENERATING PREVIEW IMAGES =======`)
     const previewUrls = await generatePreviewImages(pdfBuffer, fileId, magickStatus.imagemagick)
-    console.log(`[PDF-PROCESS] Preview images generated successfully:`, Object.keys(previewUrls))
-    console.log(`[PDF-PROCESS] Preview URLs:`, previewUrls)
 
     // Generate thumbnail images
-    console.log(`[PDF-PROCESS] ======= GENERATING THUMBNAIL IMAGES =======`)
     const thumbnailUrls = await generateThumbnails(pdfBuffer, fileId, metadata.pageCount, magickStatus.imagemagick)
-    console.log(`[PDF-PROCESS] Thumbnail images generated successfully:`, thumbnailUrls.pages?.length || 0)
-    console.log(`[PDF-PROCESS] Thumbnail URLs:`, thumbnailUrls)
 
     // Update file record with processing results
     const processingData = {
@@ -1436,7 +1289,6 @@ export default async function handler(req, res) {
     const updatedFile = await updateFileWithProcessingResults(fileId, processingData)
 
     // Log successful processing
-    console.log(`PDF processed successfully: ${fileId}`, {
       pageCount: metadata.pageCount,
       dimensions: dimensions,
       previewCount: Object.keys(previewUrls).length,
@@ -1484,7 +1336,6 @@ export default async function handler(req, res) {
 
     // Handle specific error types with detailed logging
     if (error.message.includes('File not found') || error.message.includes('PGRST116')) {
-      console.log('[PDF-PROCESS] File not found error - returning 404')
       return res.status(404).json({ 
         error: 'File not found',
         details: error.message
@@ -1492,7 +1343,6 @@ export default async function handler(req, res) {
     }
 
     if (error.message.includes('Storage download failed') || error.message.includes('Failed to download file')) {
-      console.log('[PDF-PROCESS] Storage download error - returning 500')
       return res.status(500).json({ 
         error: 'Storage error',
         details: 'Unable to download file from storage'
@@ -1502,7 +1352,6 @@ export default async function handler(req, res) {
     if (error.message.includes('PDF metadata extraction failed') || 
         error.message.includes('Invalid PDF') ||
         error.message.includes('provide binary data as')) {
-      console.log('[PDF-PROCESS] PDF parsing error - returning 422')
       return res.status(422).json({ 
         error: 'Invalid PDF',
         details: 'Unable to extract PDF metadata. File may be corrupted or invalid.'
@@ -1512,7 +1361,6 @@ export default async function handler(req, res) {
     // Handle system ImageMagick specific errors
     if (error.message.includes('ImageMagick not available') ||
         error.message.includes('convert') && error.message.includes('not found')) {
-      console.log('[PDF-PROCESS] ImageMagick not available error - returning 503:', {
         errorMessage: error.message,
         details: 'System ImageMagick not installed or not accessible'
       })
@@ -1525,7 +1373,6 @@ export default async function handler(req, res) {
     if (error.message.includes('ImageMagick conversion error') ||
         error.message.includes('Failed to read generated image') ||
         error.message.includes('Generated image is too small')) {
-      console.log('[PDF-PROCESS] ImageMagick conversion error - returning 422:', {
         errorMessage: error.message,
         details: 'System ImageMagick PDF conversion failed'
       })
@@ -1536,7 +1383,6 @@ export default async function handler(req, res) {
     }
     
     if (error.message.includes('Command failed') && error.message.includes('convert')) {
-      console.log('[PDF-PROCESS] ImageMagick command error - returning 422:', {
         errorMessage: error.message,
         details: 'ImageMagick command execution failed'
       })
@@ -1548,14 +1394,12 @@ export default async function handler(req, res) {
 
     // Handle PDF.js initialization and compatibility errors - return 422 instead of 503
     if (error.message.includes('PDF.js initialization failed')) {
-      console.log('[PDF-PROCESS] PDF.js initialization error - falling back to placeholder:', {
         errorMessage: error.message,
         details: 'PDF.js module failed to load, using fallback'
       })
       
       // Try to generate a basic placeholder instead of failing completely
       try {
-        console.log('[PDF-PROCESS] Attempting to create placeholder preview for failed processing')
         const placeholderUrls = await generatePlaceholderPreview(fileId)
         
         // Update file with placeholder results
@@ -1604,7 +1448,6 @@ export default async function handler(req, res) {
     if (error.message.includes('Image or Canvas expected') ||
         error.message.includes('canvas.getContext is not a function') ||
         error.message.includes('Cannot read property') && error.message.includes('canvas')) {
-      console.log('[PDF-PROCESS] Canvas compatibility error - returning 422:', {
         errorMessage: error.message,
         buildUsed: 'legacy',
         canvasFactoryUsed: 'NodeCanvasFactory',
@@ -1632,7 +1475,6 @@ export default async function handler(req, res) {
         error.message.includes('Missing required browser APIs') ||
         error.message.includes('Please provide binary data as `Uint8Array`') ||
         error.message.includes('Canvas is not supported')) {
-      console.log('[PDF-PROCESS] PDF.js compatibility error - attempting fallback:', {
         errorMessage: error.message,
         errorStack: error.stack?.split('\n').slice(0, 5).join('\n'),
         missingAPI: error.message.match(/(DOMMatrix|Path2D|ImageData|DOMPoint|Canvas|Uint8Array).*not defined/)?.[1] || 'unknown',
@@ -1643,7 +1485,6 @@ export default async function handler(req, res) {
       
       // Try to generate a basic placeholder instead of failing completely
       try {
-        console.log('[PDF-PROCESS] Attempting to create placeholder preview for compatibility error')
         const placeholderUrls = await generatePlaceholderPreview(fileId)
         
         // Update file with placeholder results
@@ -1691,7 +1532,6 @@ export default async function handler(req, res) {
 
     if (error.message.includes('Preview generation failed') || 
         error.message.includes('Thumbnail generation failed')) {
-      console.log('[PDF-PROCESS] Image generation error - returning 500')
       return res.status(500).json({ 
         error: 'Image processing error',
         details: 'Unable to generate preview images'
@@ -1701,7 +1541,6 @@ export default async function handler(req, res) {
     // Database connection errors
     if (error.message.includes('Failed to fetch file upload') ||
         error.message.includes('Missing Supabase environment variables')) {
-      console.log('[PDF-PROCESS] Database connection error - returning 503')
       return res.status(503).json({ 
         error: 'Database unavailable',
         details: 'Unable to connect to database'
@@ -1709,7 +1548,6 @@ export default async function handler(req, res) {
     }
 
     // Generic error response with more detail for debugging
-    console.log('[PDF-PROCESS] Unhandled error - returning generic 500')
     res.status(500).json({ 
       error: 'Processing failed',
       details: process.env.NODE_ENV === 'development' 

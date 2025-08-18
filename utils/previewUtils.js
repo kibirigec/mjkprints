@@ -195,7 +195,6 @@ export function convertObjectToArrayFormat(objectFormatUrls) {
  */
 export function debugPreviewUrls(rawPreviewUrls, context = 'unknown') {
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[previewUtils] ${context} - Preview URLs debug:`, {
       type: typeof rawPreviewUrls,
       isArray: Array.isArray(rawPreviewUrls),
       value: rawPreviewUrls,

@@ -124,7 +124,6 @@ export default async function handler(req, res) {
       envInfo.deploymentPlatform = 'Unknown/Custom'
     }
 
-    console.log(`[ENV-DEBUG] Environment check completed:`, {
       criticalIssues: envInfo.criticalIssues.length,
       platform: envInfo.deploymentPlatform,
       hasServiceRole: envInfo.environmentCheck.SUPABASE_SERVICE_ROLE_KEY.exists

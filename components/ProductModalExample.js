@@ -33,7 +33,6 @@ const ProductModalExample = () => {
 
   // Handle successful save (refresh data, show notifications, etc.)
   const handleModalSave = (savedProduct) => {
-    console.log('Product saved:', savedProduct);
     
     if (modalMode === 'add') {
       // Add new product to list
@@ -48,7 +47,6 @@ const ProductModalExample = () => {
 
   // Handle successful completion (optional additional actions)
   const handleModalSuccess = (savedProduct) => {
-    console.log('Operation completed successfully:', savedProduct);
     // Could trigger notifications, analytics, etc.
   };
 

@@ -81,7 +81,6 @@ export default async function handler(req, res) {
 
       case 'DELETE':
         try {
-          console.log(`[FILE-DELETE] Starting deletion for file ID: ${id}`)
           
           // Check environment configuration first
           if (!supabaseAdmin) {
@@ -96,17 +95,14 @@ export default async function handler(req, res) {
           // Check if file exists first
           const existingFile = await getFileUploadById(id)
           if (!existingFile) {
-            console.log(`[FILE-DELETE] File not found: ${id}`)
             return res.status(404).json({ error: 'File not found' })
           }
 
-          console.log(`[FILE-DELETE] Found file: ${existingFile.file_name} at ${existingFile.storage_path}`)
 
           // Delete from storage first using the helper function
           if (existingFile.storage_path) {
             try {
               await deleteFileFromStorage(existingFile.storage_path)
-              console.log(`[FILE-DELETE] Successfully deleted from storage: ${existingFile.storage_path}`)
             } catch (storageError) {
               console.error(`[FILE-DELETE] Storage deletion failed (continuing):`, storageError.message)
               // Continue with database deletion even if storage fails
@@ -116,7 +112,6 @@ export default async function handler(req, res) {
           // Use the helper function which uses admin client for RLS bypass
           try {
             const deletedFile = await deleteFileUpload(id)
-            console.log(`[FILE-DELETE] Successfully deleted from database: ${deletedFile.id}`)
           } catch (dbError) {
             console.error(`[FILE-DELETE] Database deletion failed:`, dbError.message)
             
@@ -160,13 +155,11 @@ export default async function handler(req, res) {
               console.warn(`[FILE-DELETE] Failed to clear image references:`, imageUpdateError.message)
             }
 
-            console.log(`[FILE-DELETE] Cleared product references for file: ${id}`)
           } catch (updateError) {
             console.warn(`[FILE-DELETE] Non-critical error clearing product references:`, updateError.message)
             // Don't fail the deletion if we can't update product references
           }
           
-          console.log(`[FILE-DELETE] File deletion completed successfully: ${id}`)
           res.status(200).json({ 
             message: 'File deleted successfully',
             file: existingFile 

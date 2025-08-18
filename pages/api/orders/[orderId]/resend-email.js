@@ -14,7 +14,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log(`[RESEND-EMAIL] Starting email resend for order: ${orderId}`)
 
     // Get order details with items
     const orderWithItems = await getOrderById(orderId)
@@ -29,32 +28,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Order has no items to send' })
     }
 
-    console.log(`[RESEND-EMAIL] Found order with ${orderWithItems.order_items.length} items`)
 
     // Try to get files for email attachment first
     let attachmentFiles = []
     let downloadLinks = []
 
     try {
-      console.log('[RESEND-EMAIL] Attempting to retrieve files for email attachment')
       attachmentFiles = await getProductFilesForAttachment(orderWithItems.order_items)
-      console.log(`[RESEND-EMAIL] Retrieved ${attachmentFiles.length} files for attachment`)
 
       // Always create download links as backup
       downloadLinks = await createDownloadLinks(orderWithItems.order_items, orderWithItems.email)
-      console.log(`[RESEND-EMAIL] Created ${downloadLinks.length} backup download links`)
 
     } catch (fileError) {
       console.error('[RESEND-EMAIL] Error retrieving files for attachment:', fileError.message)
-      console.log('[RESEND-EMAIL] Falling back to download links only')
 
       // Fallback to download links if file retrieval fails
       downloadLinks = await createDownloadLinks(orderWithItems.order_items, orderWithItems.email)
     }
 
     // Send order confirmation email
-    console.log('[RESEND-EMAIL] Preparing to send order confirmation email...')
-    console.log('[RESEND-EMAIL] Email details:', {
       recipient: orderWithItems.email,
       orderId,
       attachmentCount: attachmentFiles.length,
@@ -68,7 +60,6 @@ export default async function handler(req, res) {
     )
 
     if (emailResult.success) {
-      console.log(`[RESEND-EMAIL] ✅ Order confirmation email sent successfully for order: ${orderId}`)
       return res.status(200).json({
         success: true,
         message: 'Email sent successfully',

@@ -119,7 +119,6 @@ export default async function handler(req, res) {
     const buffer = await fileData.arrayBuffer()
     res.send(Buffer.from(buffer))
 
-    console.log(`File downloaded: ${fileName} by ${email} (${currentDownloadCount + 1}/5)`)
 
   } catch (error) {
     console.error('Download error:', error)

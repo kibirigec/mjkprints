@@ -18,12 +18,10 @@ export default async function handler(req, res) {
   const { testType, orderId } = req.body
 
   try {
-    console.log('[WEBHOOK-TEST] Testing webhook endpoint accessibility')
 
     // Test basic webhook endpoint accessibility
     const webhookUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/api/webhooks/stripe`
     
-    console.log('[WEBHOOK-TEST] Webhook URL:', webhookUrl)
 
     // Simulate a webhook test by making a request to the webhook endpoint
     // Note: This will fail signature verification (expected) but will test accessibility
@@ -41,9 +39,7 @@ export default async function handler(req, res) {
         })
       })
 
-      console.log('[WEBHOOK-TEST] Webhook endpoint response status:', testResponse.status)
       const responseText = await testResponse.text()
-      console.log('[WEBHOOK-TEST] Webhook endpoint response:', responseText)
 
       // Check webhook configuration
       const webhookConfig = {

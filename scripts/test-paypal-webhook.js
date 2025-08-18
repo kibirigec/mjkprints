@@ -10,12 +10,10 @@ import fetch from 'node-fetch'
 config()
 
 async function testPayPalWebhook() {
-  console.log('🧪 Testing PayPal Webhook Processing...\n')
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const webhookUrl = `${baseUrl}/api/webhooks/paypal`
 
-  console.log(`Webhook URL: ${webhookUrl}`)
 
   // Test webhook payload - simulating a payment capture completed event
   const testPayload = {
@@ -67,7 +65,6 @@ async function testPayPalWebhook() {
     'paypal-transmission-time': new Date().toISOString()
   }
 
-  console.log('1. Testing webhook endpoint availability...')
   
   try {
     const response = await fetch(webhookUrl, {
@@ -79,50 +76,25 @@ async function testPayPalWebhook() {
       body: JSON.stringify(testPayload)
     })
 
-    console.log(`   Response Status: ${response.status}`)
     
     if (response.ok) {
       const responseData = await response.json()
-      console.log('✅ Webhook endpoint responded successfully')
-      console.log(`   Response: ${JSON.stringify(responseData)}`)
     } else {
       const errorText = await response.text()
-      console.log('⚠️  Webhook endpoint returned error')
-      console.log(`   Error: ${errorText}`)
       
       if (response.status === 400 && errorText.includes('signature')) {
-        console.log('\n💡 This is expected in testing - webhook signature verification failed')
-        console.log('   The webhook handler is working but rejecting unsigned test requests')
-        console.log('   In production, PayPal will provide valid signatures')
       }
     }
 
   } catch (error) {
-    console.log('❌ Failed to reach webhook endpoint')
     console.error(`   Error: ${error.message}`)
     
     if (error.code === 'ECONNREFUSED') {
-      console.log('\n🔧 Troubleshooting Tips:')
-      console.log('   - Make sure your development server is running (npm run dev)')
-      console.log('   - Check if the webhook endpoint exists at /pages/api/webhooks/paypal.js')
-      console.log('   - Verify NEXT_PUBLIC_SITE_URL is set correctly')
     }
   }
 
-  console.log('\n2. Testing webhook signature verification...')
-  console.log('   Note: Signature verification requires valid PayPal webhook credentials')
-  console.log('   Set PAYPAL_WEBHOOK_ID in your environment variables for full testing')
 
-  console.log('\n📋 Webhook Test Summary:')
-  console.log('   - Webhook endpoint exists and responds')
-  console.log('   - Event payload processing (check server logs)')
-  console.log('   - Signature verification (requires production setup)')
 
-  console.log('\n💡 Next Steps:')
-  console.log('   1. Configure webhook endpoint in PayPal Developer Console')
-  console.log('   2. Set PAYPAL_WEBHOOK_ID environment variable')
-  console.log('   3. Test with real PayPal webhook events')
-  console.log('   4. Monitor webhook processing in application logs')
 }
 
 // Run the test

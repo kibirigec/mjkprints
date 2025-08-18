@@ -10,7 +10,6 @@ export default function CartDrawer({ isOpen, onClose }) {
   const router = useRouter()
 
   const handleCheckout = async () => {
-    console.log('🛒 CartDrawer: Starting checkout redirect...', { cartItems: cart.length })
     setIsCheckingOut(true)
     
     try {
@@ -23,7 +22,6 @@ export default function CartDrawer({ isOpen, onClose }) {
       // Redirect to cart page for full checkout experience
       await router.push('/cart')
       
-      console.log('✅ CartDrawer: Successfully redirected to cart page')
     } catch (error) {
       console.error('❌ CartDrawer: Redirect failed:', error)
       alert('Unable to proceed to checkout. Please try again.')

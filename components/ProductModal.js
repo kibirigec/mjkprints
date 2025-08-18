@@ -139,7 +139,6 @@ const ProductModal = ({
     setShowSuccessMessage(false);
     
     // Additional defensive cleanup
-    console.log('[PRODUCT-MODAL] Form reset completed');
   };
 
   const handleClose = () => {
@@ -203,7 +202,6 @@ const ProductModal = ({
 
   // PDF upload handlers
   const handlePDFUploadComplete = (pdfFile) => {
-    console.log('[PRODUCT-MODAL] PDF upload completed:', pdfFile.fileName);
     setUploadedPDF(pdfFile);
     setPdfProcessingStatus('idle'); // Set to 'idle' so PDFPreviewComponent can start processing
     setPdfError(null);
@@ -274,7 +272,6 @@ const ProductModal = ({
   };
 
   const handlePDFProcessingComplete = (processedData) => {
-    console.log('[PRODUCT-MODAL] PDF processing completed:', processedData.fileName);
     setProcessedPDFData(processedData);
     setPdfProcessingStatus('completed');
     setPdfError(null);
@@ -297,7 +294,6 @@ const ProductModal = ({
       
       if (supabaseUrl) {
         const imageUrl = `${supabaseUrl}/storage/v1/object/public/mjk-prints-storage/${processedData.previewUrls.medium}`;
-        console.log('[PRODUCT-MODAL] Setting image URL:', imageUrl);
         setFormData(prev => ({ ...prev, image: imageUrl }));
       } else {
         console.warn('[PRODUCT-MODAL] Cannot set image URL - Supabase URL not available');
@@ -354,15 +350,12 @@ const ProductModal = ({
 
   // Image upload handlers
   const handleImageUploadComplete = (imageFile) => {
-    console.log('[PRODUCT-MODAL] ======= IMAGE UPLOAD COMPLETED =======')
-    console.log('[PRODUCT-MODAL] Image file received:', {
       id: imageFile.id,
       fileName: imageFile.fileName,
       fileSize: imageFile.fileSize,
       dimensions: imageFile.dimensions,
       processingStatus: imageFile.processingStatus
     })
-    console.log('[PRODUCT-MODAL] Complete imageFile object:', imageFile)
     
     setUploadedImage(imageFile);
     setProcessedImageData(imageFile); // For images, upload and processing are the same step
@@ -405,7 +398,6 @@ const ProductModal = ({
     }
     
     if (Object.keys(updates).length > 0) {
-      console.log('[PRODUCT-MODAL] Auto-populating fields from image metadata:', updates);
       setFormData(prev => ({ ...prev, ...updates }));
     }
   };
@@ -500,8 +492,6 @@ const ProductModal = ({
         };
       }
 
-      console.log('[PRODUCT-MODAL] ======= FORM SUBMISSION DEBUG =======')
-      console.log('[PRODUCT-MODAL] Form submission started:', { 
         method, 
         url, 
         uploadMode,
@@ -513,7 +503,6 @@ const ProductModal = ({
         }
       })
       
-      console.log('[PRODUCT-MODAL] File upload states:', {
         hasPDF: !!processedPDFData,
         pdfFileId: processedPDFData?.id,
         pdfFileName: processedPDFData?.fileName,
@@ -523,7 +512,6 @@ const ProductModal = ({
         imageProcessingStatus: processedImageData?.processingStatus
       })
       
-      console.log('[PRODUCT-MODAL] Complete productData being sent:', productData)
       
       const response = await fetch(url, {
         method,
@@ -531,12 +519,9 @@ const ProductModal = ({
         body: JSON.stringify(productData),
       });
 
-      console.log('[PRODUCT-MODAL] API response status:', response.status, response.statusText);
 
       if (response.ok) {
         const savedProduct = await response.json();
-        console.log('[PRODUCT-MODAL] ======= PRODUCT SAVE SUCCESS =======')
-        console.log('[PRODUCT-MODAL] Product saved successfully:', { 
           id: savedProduct.id, 
           title: savedProduct.title,
           hasImageFileId: !!savedProduct.image_file_id,
@@ -544,7 +529,6 @@ const ProductModal = ({
           image: savedProduct.image?.substring(0, 100)
         })
         
-        console.log('[PRODUCT-MODAL] Complete saved product data:', savedProduct)
         
         // Clear any previous errors
         setErrors({});

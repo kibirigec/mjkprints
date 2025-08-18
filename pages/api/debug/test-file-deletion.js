@@ -32,7 +32,6 @@ export default async function handler(req, res) {
 
   try {
     // Test 1: Environment Configuration
-    console.log('[DEBUG-DELETE] Testing environment configuration...')
     debugInfo.results.environment = {
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -47,7 +46,6 @@ export default async function handler(req, res) {
     }
 
     // Test 2: Basic connectivity 
-    console.log('[DEBUG-DELETE] Testing database connectivity...')
     try {
       const { data: testQuery, error: connectError } = await supabaseAdmin
         .from('file_uploads')
@@ -69,7 +67,6 @@ export default async function handler(req, res) {
 
     // Test 3: File existence (if fileId provided)
     if (fileId) {
-      console.log(`[DEBUG-DELETE] Testing file existence for ID: ${fileId}...`)
       try {
         const existingFile = await getFileUploadById(fileId)
         debugInfo.results.fileCheck = {
@@ -90,7 +87,6 @@ export default async function handler(req, res) {
     }
 
     // Test 4: RLS Policy Test
-    console.log('[DEBUG-DELETE] Testing RLS policies...')
     try {
       // Try to read with admin client
       const { data: adminRead, error: adminReadError } = await supabaseAdmin
@@ -120,7 +116,6 @@ export default async function handler(req, res) {
 
     // Test 5: Actual deletion test (if fileId provided and testType is 'full')
     if (fileId && testType === 'full') {
-      console.log(`[DEBUG-DELETE] Testing actual deletion for ID: ${fileId}...`)
       try {
         // First, let's try a direct delete with admin client
         const { data: deleteData, error: deleteError } = await supabaseAdmin
@@ -159,7 +154,6 @@ export default async function handler(req, res) {
 
     // Test 6: Foreign key constraints check
     if (fileId) {
-      console.log('[DEBUG-DELETE] Checking for foreign key references...')
       try {
         const { data: productRefs, error: productError } = await supabaseAdmin
           .from('products')
@@ -178,7 +172,6 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('[DEBUG-DELETE] Debug test completed')
     return res.status(200).json(debugInfo)
 
   } catch (error) {

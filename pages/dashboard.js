@@ -99,7 +99,6 @@ export default function Dashboard() {
       allFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       
       setFiles(allFiles);
-      console.log(`[DASHBOARD] Loaded ${allFiles.length} files:`, {
         linked: allFiles.filter(f => !f.is_orphaned).length,
         orphaned: allFiles.filter(f => f.is_orphaned).length
       });
@@ -113,7 +112,6 @@ export default function Dashboard() {
 
   // Modal handlers
   const openAddModal = () => {
-    console.log('Add Product button clicked - opening modal');
     setModalMode('add');
     setEditingProduct(null);
     setIsModalOpen(true);

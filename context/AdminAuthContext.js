@@ -96,7 +96,6 @@ export function AdminAuthProvider({ children }) {
     }
 
     try {
-      console.log('🔐 Attempting admin login...')
       
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
@@ -112,13 +111,11 @@ export function AdminAuthProvider({ children }) {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        console.log('✅ Admin login successful')
         ClientSecurity.storeAuthSession(data.token)
         setIsAuthenticated(true)
         setIsLocked(false)
         return { success: true }
       } else {
-        console.log('❌ Admin login failed:', data.error)
         const attempts = ClientSecurity.recordFailedAttempt()
         const remaining = ClientSecurity.getRemainingAttempts()
 
@@ -145,7 +142,6 @@ export function AdminAuthProvider({ children }) {
   }
 
   const logout = useCallback(() => {
-    console.log('🚪 Admin logout')
     ClientSecurity.clearSession()
     setIsAuthenticated(false)
   }, [])

@@ -20,11 +20,6 @@ const colors = {
 }
 
 const log = {
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  section: (msg) => console.log(`\n${colors.bright}${colors.cyan}${msg}${colors.reset}\n`)
 }
 
 class StripeWebhookSetup {
@@ -78,47 +73,17 @@ class StripeWebhookSetup {
   displayWebhookSetupInstructions() {
     log.section('📖 Stripe Webhook Setup Instructions')
     
-    console.log(`${colors.bright}FOR DEVELOPMENT:${colors.reset}`)
-    console.log('1. Install Stripe CLI: https://stripe.com/docs/stripe-cli')
-    console.log('2. Login to Stripe CLI: stripe login')
-    console.log(`3. Forward webhooks: ${colors.cyan}stripe listen --forward-to localhost:3001/api/webhooks/stripe${colors.reset}`)
-    console.log('4. Copy webhook secret from CLI output (starts with whsec_)')
-    console.log('5. Add to .env.local: STRIPE_WEBHOOK_SECRET=whsec_...\n')
     
-    console.log(`${colors.bright}FOR PRODUCTION:${colors.reset}`)
-    console.log('1. Go to Stripe Dashboard → Developers → Webhooks')
-    console.log('2. Add endpoint: https://yourdomain.com/api/webhooks/stripe')
-    console.log('3. Select events:')
-    console.log('   • checkout.session.completed')
-    console.log('   • payment_intent.succeeded')
-    console.log('   • payment_intent.payment_failed')
-    console.log('4. Copy webhook secret and add to production environment')
   }
 
   displayTestingInstructions() {
     log.section('🧪 Testing Your Webhook Setup')
     
-    console.log('Once configured, test your webhooks:')
-    console.log(`1. Start dev server: ${colors.cyan}npm run dev${colors.reset}`)
-    console.log(`2. Test endpoint: ${colors.cyan}curl -X POST http://localhost:3001/api/webhooks/stripe${colors.reset}`)
-    console.log(`3. Simulate events: ${colors.cyan}stripe trigger checkout.session.completed${colors.reset}`)
-    console.log(`4. Make test purchase: Use card 4242 4242 4242 4242`)
   }
 
   displayTroubleshootingTips() {
     log.section('🔧 Troubleshooting Common Issues')
     
-    console.log('• Webhook signature verification failed:')
-    console.log('  → Check STRIPE_WEBHOOK_SECRET matches your endpoint')
-    console.log('  → Ensure raw body parsing in API route')
-    console.log('')
-    console.log('• Orders stay "pending" after payment:')
-    console.log('  → Webhook events not being received')
-    console.log('  → Check webhook endpoint URL is accessible')
-    console.log('')
-    console.log('• Email not sending:')
-    console.log('  → Configure SendGrid API key')
-    console.log('  → Check SENDGRID_FROM_EMAIL is verified')
   }
 
   async updateWebhookSecret(secret) {
@@ -176,11 +141,6 @@ class StripeWebhookSetup {
   }
 
   async run() {
-    console.log(`${colors.bright}${colors.magenta}`)
-    console.log('╔══════════════════════════════════════════════════════════╗')
-    console.log('║                MJK Prints Stripe Webhook Setup          ║')
-    console.log('╚══════════════════════════════════════════════════════════╝')
-    console.log(colors.reset)
 
     // Check current configuration
     const isConfigured = await this.checkStripeConfiguration()
@@ -201,8 +161,6 @@ class StripeWebhookSetup {
 
     // Quick setup option
     log.section('⚡ Quick Setup')
-    console.log('If you have your webhook secret ready, you can update it now:')
-    console.log(`${colors.cyan}node scripts/setup-stripe-webhook.js --secret whsec_your_secret_here${colors.reset}`)
     
     // Handle command line secret update
     const secretArg = process.argv.find(arg => arg.startsWith('--secret='))
@@ -214,10 +172,6 @@ class StripeWebhookSetup {
       await this.updateWebhookSecret(secret)
     }
 
-    console.log(`\n${colors.bright}Next Steps:${colors.reset}`)
-    console.log('1. Follow the setup instructions above')
-    console.log('2. Test your configuration with a purchase')
-    console.log(`3. Check logs for any issues: ${colors.cyan}npm run dev${colors.reset}`)
   }
 }
 

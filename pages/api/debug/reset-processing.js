@@ -17,7 +17,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log(`[RESET] Resetting processing status for file: ${fileId}`)
     
     // First, get the current file record
     const file = await getFileUploadById(fileId)
@@ -25,7 +24,6 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'File not found' })
     }
     
-    console.log(`[RESET] Current status: ${file.processing_status}`)
     
     // Reset to pending status with empty metadata
     await updateFileProcessingStatus(fileId, 'pending', {
@@ -33,7 +31,6 @@ export default async function handler(req, res) {
       resetReason: 'Debug reset for reprocessing'
     })
     
-    console.log(`[RESET] Status reset to pending for file: ${fileId}`)
     
     return res.status(200).json({
       success: true,

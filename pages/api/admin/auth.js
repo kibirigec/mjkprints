@@ -121,15 +121,11 @@ export default async function handler(req, res) {
     // SECURITY: Use constant-time comparison to prevent timing attacks
     let isValidPasscode = false
     try {
-      console.log('🔍 Auth debug - passcode received:', passcode.length, 'chars')
-      console.log('🔍 Auth debug - expected starts with $2b$:', expectedPasscode.startsWith('$2b$'))
       
       // For backward compatibility, check if it's a hash or plain text
       if (expectedPasscode.startsWith('$2b$')) {
         // It's a bcrypt hash
-        console.log('🔍 Auth debug - using bcrypt comparison')
         isValidPasscode = await bcrypt.compare(passcode, expectedPasscode)
-        console.log('🔍 Auth debug - bcrypt result:', isValidPasscode)
       } else {
         // It's plain text - use constant-time comparison
         // Convert both to buffers for crypto.timingSafeEqual
@@ -163,7 +159,6 @@ export default async function handler(req, res) {
 
     if (!isValidPasscode) {
       recordAttempt(clientIP, false)
-      console.log(`🔐 Invalid passcode attempt from IP: ${clientIP}`)
       
       return res.status(401).json({
         error: 'Invalid passcode',
@@ -187,7 +182,6 @@ export default async function handler(req, res) {
     
     res.setHeader('Set-Cookie', sessionCookie)
     
-    console.log(`✅ Successful admin login from IP: ${clientIP}`)
 
     // Don't send token in response - it's now in secure HTTP-only cookie
     return res.status(200).json({

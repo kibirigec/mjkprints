@@ -33,14 +33,12 @@ This action cannot be undone. Are you sure?`
     setIsDeleting(productId)
     
     try {
-      console.log(`[DASHBOARD] Deleting product: ${productId}`)
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
         const result = await response.json()
-        console.log(`[DASHBOARD] Product deleted successfully:`, result)
         onRefresh()
       } else {
         const errorData = await response.json()

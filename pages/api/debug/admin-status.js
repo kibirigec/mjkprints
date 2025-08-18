@@ -15,7 +15,6 @@ export default async function handler(req, res) {
 
   try {
     // Test 1: Check if admin session exists and is valid
-    console.log('[ADMIN-DEBUG] Testing admin session...')
     
     try {
       const sessionToken = req.cookies?.['mjk-admin-session']
@@ -124,7 +123,6 @@ export default async function handler(req, res) {
       overallStatus: debugInfo.authenticationTest.success ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED'
     }
 
-    console.log(`[ADMIN-DEBUG] Authentication test completed:`, {
       authenticated: debugInfo.summary.isAuthenticated,
       hasSession: debugInfo.summary.hasValidSession,
       status: debugInfo.summary.overallStatus

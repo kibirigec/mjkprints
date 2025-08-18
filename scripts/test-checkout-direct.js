@@ -10,7 +10,6 @@ config({ path: '.env.local' })
 const { createOrder, createOrderItems } = await import('../lib/supabase.js')
 
 async function testCheckoutDirect() {
-  console.log('🧪 Direct checkout database operations test...\n')
   
   const testEmail = 'test@mjkprints.com'
   const testTotal = 19.41
@@ -23,8 +22,6 @@ async function testCheckoutDirect() {
   ]
   
   try {
-    console.log('📝 Step 1: Testing createOrder...')
-    console.log('Order data:', {
       email: testEmail,
       total_amount: testTotal,
       status: 'pending'
@@ -50,22 +47,15 @@ async function testCheckoutDirect() {
       }
     })
     
-    console.log('✅ Order created successfully!')
-    console.log('Order ID:', order.id)
-    console.log('Order details:', {
       id: order.id,
       email: order.email,
       total_amount: order.total_amount,
       status: order.status
     })
     
-    console.log('\n📝 Step 2: Testing createOrderItems...')
-    console.log('Order items data:', testItems)
     
     const orderItems = await createOrderItems(order.id, testItems)
     
-    console.log('✅ Order items created successfully!')
-    console.log('Order items:', orderItems.map(item => ({
       id: item.id,
       product_id: item.product_id,
       quantity: item.quantity,
@@ -73,16 +63,12 @@ async function testCheckoutDirect() {
       total_price: item.total_price
     })))
     
-    console.log('\n🎉 All database operations successful!')
-    console.log('The issue is likely in the Stripe integration, not database operations.')
     
     // Clean up test data
-    console.log('\n🧹 Cleaning up test data...')
     await import('../lib/supabase.js').then(async ({ supabaseAdmin }) => {
       if (supabaseAdmin) {
         await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
         await supabaseAdmin.from('orders').delete().eq('id', order.id)
-        console.log('✅ Test data cleaned up')
       }
     })
     
@@ -93,21 +79,12 @@ async function testCheckoutDirect() {
     
     // Additional error analysis
     if (error.message.includes('violates row-level security policy')) {
-      console.log('\n🔍 ANALYSIS: RLS policy issue')
-      console.log('- The admin client is not bypassing RLS as expected')
-      console.log('- Check if SUPABASE_SERVICE_ROLE_KEY is set correctly')
     }
     
     if (error.message.includes('violates foreign key constraint')) {
-      console.log('\n🔍 ANALYSIS: Foreign key constraint issue')
-      console.log('- The product_id might not exist in the products table')
-      console.log('- Check if the test product ID is valid')
     }
     
     if (error.message.includes('violates check constraint')) {
-      console.log('\n🔍 ANALYSIS: Check constraint issue')
-      console.log('- The data values violate database constraints')
-      console.log('- Check the data types and value ranges')
     }
   }
 }
