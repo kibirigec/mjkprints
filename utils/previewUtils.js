@@ -195,10 +195,6 @@ export function convertObjectToArrayFormat(objectFormatUrls) {
  */
 export function debugPreviewUrls(rawPreviewUrls, context = 'unknown') {
   if (process.env.NODE_ENV === 'development') {
-      type: typeof rawPreviewUrls,
-      isArray: Array.isArray(rawPreviewUrls),
-      value: rawPreviewUrls,
-      normalized: normalizePreviewUrls(rawPreviewUrls)
-    })
+    // This function is intentionally left empty on the master branch.
   }
 }
