@@ -99,9 +99,6 @@ export default function Dashboard() {
       allFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       
       setFiles(allFiles);
-        linked: allFiles.filter(f => !f.is_orphaned).length,
-        orphaned: allFiles.filter(f => f.is_orphaned).length
-      });
     } catch (err) {
       console.error('Error fetching files:', err);
       setFiles([]);
