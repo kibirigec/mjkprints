@@ -369,17 +369,10 @@ export default function CartPage() {
                     {email && !emailError ? (
                       <div>
                         <PayPalScriptProvider 
-                          options={{ 
-                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AR9qsXbxX30I23erwoc6AoScM-GU8xE8B0vr8UsIwc4IDz1kbzE2Fq_28fJJrUut85g199Z5oLxkaKzT",
+                          options={{
+                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID,
                             currency: "USD",
-                            intent: "capture",
-                            "enable-funding": "venmo,paylater,card",
-                            "disable-funding": "",
-                            locale: "en_US",
-                            "data-sdk-integration-source": "button-factory",
-                            components: "buttons",
-                            "buyer-country": "US",
-                            debug: false
+                            intent: "capture"
                           }}
                           onLoadStart={() => {
                             console.log('PayPal script loading started')
