@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
   const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET
   
+  console.log({
     hasClientId: !!paypalClientId,
     hasClientSecret: !!paypalClientSecret,
     clientIdLength: paypalClientId?.length || 0,
@@ -32,6 +33,7 @@ export default async function handler(req, res) {
   try {
     const { items, email, billingDetails } = req.body
     
+    console.log({
       itemsCount: items?.length,
       email: email,
       hasBillingDetails: !!billingDetails
@@ -123,15 +125,16 @@ export default async function handler(req, res) {
       }
       
       // Debug logging for URL resolution
-        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-        resolvedBaseUrl: baseUrl,
-        isProduction,
-        isNetlify,
-        isVercel,
-        nodeEnv: process.env.NODE_ENV,
-        deployUrl: process.env.DEPLOY_URL,
-        vercelUrl: process.env.VERCEL_URL
-      })
+        console.log({
+          NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+          resolvedBaseUrl: baseUrl,
+          isProduction,
+          isNetlify,
+          isVercel,
+          nodeEnv: process.env.NODE_ENV,
+          deployUrl: process.env.DEPLOY_URL,
+          vercelUrl: process.env.VERCEL_URL
+        })
       
       const paypalOrder = await createPayPalOrder({
         items,
@@ -149,11 +152,12 @@ export default async function handler(req, res) {
       }
       
       // Debug logging for generated URLs
-        successUrl: `${baseUrl}/success?paypal_order_id={order_id}&order_id=${order.id}`,
-        cancelUrl: `${baseUrl}/cart?canceled=true`,
-        paypalOrderId: paypalOrder.id,
-        approvalUrl
-      })
+        console.log({
+          successUrl: `${baseUrl}/success?paypal_order_id={order_id}&order_id=${order.id}`,
+          cancelUrl: `${baseUrl}/cart?canceled=true`,
+          paypalOrderId: paypalOrder.id,
+          approvalUrl
+        })
 
       // Update order with PayPal order ID
       await updateOrderWithPayPalId(order.id, paypalOrder.id)

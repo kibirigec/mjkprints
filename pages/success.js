@@ -146,6 +146,7 @@ export default function SuccessPage() {
                       <h3 className="text-lg font-semibold text-primary">Your Digital Downloads</h3>
                       {order.order_items.map((item) => {
                         // Debug logging (remove in production)
+                        console.log({
                           itemId: item.id,
                           hasProducts: !!item.products,
                           imageUrl: item.products?.image,

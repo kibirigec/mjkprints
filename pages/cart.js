@@ -47,7 +47,8 @@ export default function CartPage() {
   }
 
   const handlePayPalCreateOrder = async () => {
-      email, 
+    console.log({
+      email,
       cartItems: cart.length,
       timestamp: new Date().toISOString(),
       caller: 'PayPal SDK Button'

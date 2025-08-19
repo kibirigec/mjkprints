@@ -190,6 +190,7 @@ export default async function handler(req, res) {
 
     debugInfo.summary.overallStatus = debugInfo.summary.criticalIssues.length === 0 ? 'READY' : 'ISSUES_FOUND'
 
+    console.log({
       status: debugInfo.summary.overallStatus,
       criticalIssues: debugInfo.summary.criticalIssues.length,
       adminWorking: debugInfo.summary.adminClientWorking
