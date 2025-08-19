@@ -34,6 +34,7 @@ const testCanvasCreation = () => {
   try {
     const canvas = new Canvas(100, 100)
     const ctx = canvas.getContext('2d')
+    console.log({
       width: canvas.width,
       height: canvas.height,
       contextType: typeof ctx
@@ -63,6 +64,7 @@ const testPdfJsLoading = async (pdfBuffer) => {
       throw new Error('Invalid PDF buffer: empty or null')
     }
     
+    console.log({
       type: typeof pdfBuffer,
       isBuffer: Buffer.isBuffer(pdfBuffer),
       length: pdfBuffer.length,
@@ -95,6 +97,7 @@ const testPdfJsLoading = async (pdfBuffer) => {
     let pdf
     try {
       pdf = await loadingTask.promise
+      console.log({
         numPages: pdf.numPages,
         fingerprint: pdf.fingerprint
       })
@@ -112,6 +115,7 @@ const testPdfJsLoading = async (pdfBuffer) => {
     let page
     try {
       page = await pdf.getPage(1)
+      console.log({
         pageNumber: page.pageNumber
       })
     } catch (pageError) {
@@ -123,6 +127,7 @@ const testPdfJsLoading = async (pdfBuffer) => {
     let viewport
     try {
       viewport = page.getViewport({ scale: 1.0 })
+      console.log({
         width: viewport.width,
         height: viewport.height
       })
@@ -151,6 +156,7 @@ const testPdfRendering = async (page, viewport) => {
     const canvas = new Canvas(viewport.width, viewport.height)
     const context = canvas.getContext('2d')
     
+    console.log({
       width: canvas.width,
       height: canvas.height
     })

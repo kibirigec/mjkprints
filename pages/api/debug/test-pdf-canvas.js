@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     const page = await pdf.getPage(1)
     const scale = 2.0
     const viewport = page.getViewport({ scale })
+    console.log({
       width: viewport.width,
       height: viewport.height,
       scale: scale
@@ -38,6 +39,7 @@ export default async function handler(req, res) {
     // Step 5: Create Canvas
     const canvas = new Canvas(viewport.width, viewport.height)
     const context = canvas.getContext('2d')
+    console.log({
       width: canvas.width,
       height: canvas.height,
       contextType: typeof context

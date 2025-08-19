@@ -47,6 +47,7 @@ export default async function handler(req, res) {
     }
 
     // Send order confirmation email
+    console.log({
       recipient: orderWithItems.email,
       orderId,
       attachmentCount: attachmentFiles.length,

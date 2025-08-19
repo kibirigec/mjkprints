@@ -123,6 +123,7 @@ export default async function handler(req, res) {
       overallStatus: debugInfo.authenticationTest.success ? 'AUTHENTICATED' : 'NOT_AUTHENTICATED'
     }
 
+    console.log({
       authenticated: debugInfo.summary.isAuthenticated,
       hasSession: debugInfo.summary.hasValidSession,
       status: debugInfo.summary.overallStatus

@@ -36,11 +36,13 @@ export default async function handler(req, res) {
         try {
           const { title, description, price, image, pdfFileId, pdfData, imageFileId, imageData } = req.body
 
+          console.log({
             title: title?.substring(0, 50) + '...', 
             description: description?.substring(0, 50) + '...',
             price: price,
             image: image?.substring(0, 100)
           })
+          console.log({
             hasPDF: !!pdfFileId,
             pdfFileId: pdfFileId,
             hasPdfData: !!pdfData,
@@ -51,6 +53,7 @@ export default async function handler(req, res) {
           
           // Debug: Log the complete request body structure and validate file ID
           if (pdfFileId) {
+            console.log({
               fileId: pdfFileId,
               fileIdType: typeof pdfFileId,
               fileIdLength: pdfFileId?.length,
@@ -70,6 +73,7 @@ export default async function handler(req, res) {
           
           // Debug: Log image file details and validate image file ID
           if (imageFileId) {
+            console.log({
               fileId: imageFileId,
               fileIdType: typeof imageFileId,
               fileIdLength: imageFileId?.length,
@@ -129,6 +133,7 @@ export default async function handler(req, res) {
             newProduct = await createProduct(productData)
           }
           
+          console.log({
             id: newProduct.id, 
             title: newProduct.title,
             hasImageFileId: !!newProduct.image_file_id,

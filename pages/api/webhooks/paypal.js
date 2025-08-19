@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     'paypal-transmission-time': req.headers['paypal-transmission-time']
   }
 
+  console.log({
     headers,
     payloadLength: payload.length
   })
@@ -165,6 +166,7 @@ async function handlePaymentCaptureCompleted(event) {
     }
 
     // Send order confirmation email with attachments and/or download links
+    console.log({
       recipient: email,
       orderId: dbOrderId,
       attachmentCount: attachmentFiles.length,
@@ -178,6 +180,7 @@ async function handlePaymentCaptureCompleted(event) {
     )
     
     if (emailResult.success) {
+      console.log({
         recipient: email,
         attachmentCount: attachmentFiles.length,
         downloadLinkCount: downloadLinks.length,

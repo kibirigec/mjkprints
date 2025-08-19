@@ -48,11 +48,13 @@ export default async function handler(req, res) {
         try {
           const { title, description, price, image, pdfFileId, pdfData, imageFileId, imageData } = req.body
 
+          console.log({
             title: title?.substring(0, 50) + '...', 
             description: description?.substring(0, 50) + '...',
             price,
             image: image?.substring(0, 100)
           })
+          console.log({
             hasPDF: !!pdfFileId,
             pdfFileId: pdfFileId,
             hasImage: !!imageFileId,
@@ -99,6 +101,7 @@ export default async function handler(req, res) {
           
           const updatedProduct = await updateProduct(id, productData)
           
+          console.log({
             id: updatedProduct.id, 
             title: updatedProduct.title,
             hasImageFileId: !!updatedProduct.image_file_id,

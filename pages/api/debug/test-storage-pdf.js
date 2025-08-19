@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'File not found' })
     }
     
+    console.log({
       id: file.id,
       fileName: file.file_name,
       storagePath: file.storage_path,
@@ -58,6 +59,7 @@ export default async function handler(req, res) {
     })
     
     const pdf = await loadingTask.promise
+    console.log({
       numPages: pdf.numPages,
       fingerprint: pdf.fingerprint
     })
@@ -65,6 +67,7 @@ export default async function handler(req, res) {
     // Step 5: Get first page
     const page = await pdf.getPage(1)
     const viewport = page.getViewport({ scale: 2.0 })
+    console.log({
       pageNumber: page.pageNumber,
       viewport: {
         width: viewport.width,
@@ -86,6 +89,7 @@ export default async function handler(req, res) {
       throw canvasError
     }
     
+    console.log({
       width: canvas.width,
       height: canvas.height,
       contextType: typeof context,
