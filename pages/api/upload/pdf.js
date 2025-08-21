@@ -3,7 +3,7 @@ import { readFileSync, createReadStream, unlinkSync } from 'fs'
 import { fileTypeFromBuffer } from 'file-type'
 import crypto from 'crypto'
 import pdfParse from 'pdf-parse'
-import { createFileUpload, uploadFileToStorage, checkStorageHealth } from '../../../lib/supabase'
+import { createFileUpload, uploadFileToStorage, performStorageHealthCheck } from '../../../lib/supabase'
 import { verifyAdminSession } from '../admin/auth'
 
 // Configure Next.js to disable bodyParser for this route
@@ -114,20 +114,20 @@ const performHealthChecks = async (requestId) => {
     }
     
     // Check storage bucket exists
-    const storageHealth = await checkStorageHealth()
-    if (storageHealth.healthy) {
+    const healthChecks = await performStorageHealthCheck(requestId)
+    if (healthChecks.bucketExists) {
       checks.storage = true
       log('info', 'Storage bucket check passed', { requestId })
       
       // Get bucket info for additional diagnostics
       try {
-        const bucketInfo = await getStorageBucketInfo()
+        const bucketInfo = healthChecks.bucketInfo
         log('info', 'Storage bucket info retrieved', { requestId, bucketInfo })
       } catch (error) {
         log('warn', 'Could not retrieve bucket info', { requestId, error: error.message })
       }
     } else {
-      log('error', 'Storage bucket not accessible', { requestId, details: storageHealth.message })
+      log('error', 'Storage bucket not accessible', { requestId, details: healthChecks.message })
     }
     
     // Database connection will be tested during actual operations
