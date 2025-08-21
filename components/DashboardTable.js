@@ -113,30 +113,38 @@ This action cannot be undone. Are you sure?`
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+      {isLoading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+        </div>
+      )}
       <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Product
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Price
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" className="px-8 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {safeProducts.length === 0 ? (
+          <tbody className="bg-white divide-y divide-gray-200">
+            {safeProducts.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan="3" className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center space-y-4">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <td colSpan="4" className="px-8 py-20 text-center">
+                  <div className="flex flex-col items-center space-y-6">
+                    <div className="w-20 h-20 bg-brand-light-ivory rounded-full flex items-center justify-center shadow-inner">
                       <svg 
-                        className="w-8 h-8 text-gray-400" 
+                        className="w-10 h-10 text-brand-blush" 
                         fill="none" 
                         stroke="currentColor" 
                         viewBox="0 0 24 24"
@@ -151,48 +159,73 @@ This action cannot be undone. Are you sure?`
                       </svg>
                     </div>
                     <div className="text-center">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <h3 className="text-2xl font-bold text-gray-800 mb-3">
                         No products yet
                       </h3>
-                      <p className="text-gray-500 max-w-sm">
-                        Start building your digital art collection by adding your first product
+                      <p className="text-gray-500 max-w-sm text-lg leading-relaxed">
+                        Start building your digital art collection by adding your first product.
+                        It's quick and easy!
                       </p>
                     </div>
+                    <button
+                      onClick={onAddProduct}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 ease-in-out transform hover:scale-105"
+                    >
+                      <svg className="-ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      </svg>
+                      Add New Product
+                    </button>
                   </div>
                 </td>
               </tr>
             ) : (
               safeProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 relative bg-gray-100 rounded-lg overflow-hidden">
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                  <td className="px-8 py-6">
+                    <div className="flex items-center space-x-5">
+                      <div className="w-16 h-16 relative bg-gray-100 rounded-lg overflow-hidden shadow-md flex-shrink-0">
                         <Image
                           src={product.image}
                           alt={product.title}
                           fill
                           className="object-cover"
-                          sizes="48px"
+                          sizes="(max-width: 768px) 100vw, 64px"
                         />
                       </div>
                       <div>
-                        <div className="font-medium text-primary">{product.title}</div>
-                        <div className="text-sm text-gray-500 truncate max-w-xs">
+                        <div className="font-semibold text-lg text-primary mb-1">{product.title}</div>
+                        <div className="text-sm text-gray-600 line-clamp-2 max-w-xs">
                           {product.description}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-lg font-semibold text-primary">
+                  <td className="px-8 py-6">
+                    <span className="text-xl font-bold text-primary">
                       ${product.price}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
+                  <td className="px-8 py-6">
+                    {product.file_uploads ? (
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        product.file_uploads.processing_status === 'completed' ? 'bg-green-100 text-green-800' :
+                        product.file_uploads.processing_status === 'processing' ? 'bg-yellow-100 text-yellow-800 animate-pulse' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {product.file_uploads.processing_status}
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        No File
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex items-center space-x-3">
                       <button
                         onClick={() => onEdit(product)}
-                        className="text-secondary hover:text-secondary/80 font-medium transition-colors text-sm"
+                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-150 ease-in-out"
                         title="Edit product"
                       >
                         Edit
@@ -202,7 +235,7 @@ This action cannot be undone. Are you sure?`
                         <>
                           <button
                             onClick={() => handlePreviewPDF(product)}
-                            className="text-blue-600 hover:text-blue-800 font-medium transition-colors text-sm"
+                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 ease-in-out"
                             title="Preview PDF"
                           >
                             Preview
@@ -210,7 +243,7 @@ This action cannot be undone. Are you sure?`
                           <button
                             onClick={() => handleDownloadPDF(product)}
                             disabled={isDownloading === product.id}
-                            className="text-green-600 hover:text-green-800 font-medium transition-colors disabled:opacity-50 text-sm"
+                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Download PDF"
                           >
                             {isDownloading === product.id ? 'Downloading...' : 'Download'}
@@ -221,7 +254,7 @@ This action cannot be undone. Are you sure?`
                       <button
                         onClick={() => handleDelete(product.id)}
                         disabled={isDeleting === product.id}
-                        className="text-red-600 hover:text-red-800 font-medium transition-colors disabled:opacity-50 text-sm"
+                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete product"
                       >
                         {isDeleting === product.id ? 'Deleting...' : 'Delete'}
