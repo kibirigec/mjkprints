@@ -3,7 +3,7 @@ import { readFileSync, createReadStream, unlinkSync } from 'fs'
 import { fileTypeFromBuffer } from 'file-type'
 import crypto from 'crypto'
 import sharp from 'sharp'
-import { createFileUpload, uploadFileToStorage, checkStorageBucketExists, getStorageBucketInfo } from '../../../lib/supabase'
+import { createFileUpload, uploadFileToStorage, checkStorageHealth } from '../../../lib/supabase'
 import { verifyAdminSession } from '../admin/auth'
 
 // Configure Next.js to disable bodyParser for this route
@@ -126,8 +126,8 @@ const performHealthChecks = async (requestId) => {
     }
     
     // Check storage bucket exists
-    const bucketExists = await checkStorageBucketExists()
-    if (bucketExists) {
+    const storageHealth = await checkStorageHealth()
+    if (storageHealth.healthy) {
       checks.storage = true
       log('info', 'Storage bucket check passed', { requestId })
       
@@ -139,7 +139,7 @@ const performHealthChecks = async (requestId) => {
         log('warn', 'Could not retrieve bucket info', { requestId, error: error.message })
       }
     } else {
-      log('error', 'Storage bucket not accessible', { requestId })
+      log('error', 'Storage bucket not accessible', { requestId, details: storageHealth.message })
     }
     
     checks.database = true // We'll verify this during createFileUpload
