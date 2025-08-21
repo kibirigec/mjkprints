@@ -114,20 +114,20 @@ const performHealthChecks = async (requestId) => {
     }
     
     // Check storage bucket exists
-    const healthChecks = await performStorageHealthCheck(requestId)
-    if (healthChecks.bucketExists) {
+    const storageHealth = await performStorageHealthCheck()
+    if (storageHealth.bucketExists) {
       checks.storage = true
       log('info', 'Storage bucket check passed', { requestId })
       
       // Get bucket info for additional diagnostics
       try {
-        const bucketInfo = healthChecks.bucketInfo
+        const bucketInfo = storageHealth.bucketInfo
         log('info', 'Storage bucket info retrieved', { requestId, bucketInfo })
       } catch (error) {
         log('warn', 'Could not retrieve bucket info', { requestId, error: error.message })
       }
     } else {
-      log('error', 'Storage bucket not accessible', { requestId, details: healthChecks.message })
+      log('error', 'Storage bucket not accessible', { requestId, details: storageHealth.error })
     }
     
     // Database connection will be tested during actual operations
