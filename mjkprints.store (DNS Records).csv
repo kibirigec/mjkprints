@@ -1,0 +1,12 @@
+name,ttl,type,value
+"mjkprints.store","3600","NETLIFY","mjkprints.netlify.app"
+"www.mjkprints.store","3600","NETLIFY","mjkprints.netlify.app"
+"_autodiscover._tcp.mjkprints.store","3600","SRV","autoconfig.spacemail.com"
+"mjkprints.store","3600","MX","mx1.spacemail.com"
+"mjkprints.store","3600","MX","mx2.spacemail.com"
+"mjkprints.store","3600","TXT","v=spf1 include:spf.spacemail.com ~all"
+"spacemail._domainkey.mjkprints.store","3600","TXT","v=DKIM1;k=rsa;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0BWPmjc7n623OWDkJ4LTjcakCxE2ZLklTRd8I0xug//mN3aBxJNgvbqVwbYlUGE7uOnG+FrEkJFyqPHmwQzzHb9R/K8Z3bVAFtJgO+PqjzgNomwwNPHzYb2gvkIplSFl6HD46s1ZiYA0NP1eX43uFz4zFOrOfjTM0JTL4uFEpL0zTD9dXA0ld67ikTHkqP8lrX7nRxRtwv0zdOX2V9sMPPgAiaQGkxFFLElQs1BIPwbk655LyQ9rHiI3f5BvdMU/ZWfWw9UQuBH6Jel3J5vQLQqvlHSH+UE3mt0vCUoNZLE06C2SxNHQIrxlYKtFbC+ZbGQgxFVjXibmjBzZpJW80QIDAQAB"
+"mlsend2._domainkey.mjkprints.store","3600","CNAME","mlsend2._domainkey.mailersend.net"
+"mta.mjkprints.store","3600","CNAME","mailersend.net"
+"mjkprints.store","3600","TXT","v=spf1 include:_spf.mailersend.net include:spf.spacemail.com ~all"
+"mjkprints.store","3600","SPF","v=spf1 include:_spf.mailersend.net include:spf.spacemail.com ~all"

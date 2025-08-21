@@ -6,7 +6,6 @@
 import { createMocks } from 'node-mocks-http'
 import previewHandler from '../pages/api/products/[id]/preview.js'
 
-// Mock Supabase client
 const mockSupabaseResponse = {
   data: null,
   error: null
@@ -19,8 +18,7 @@ const mockSupabase = {
   single: jest.fn(() => Promise.resolve(mockSupabaseResponse))
 }
 
-// Mock the supabase module
-jest.mock('../../lib/supabase', () => ({
+jest.mock('@/lib/supabase', () => ({
   supabase: mockSupabase
 }))
 

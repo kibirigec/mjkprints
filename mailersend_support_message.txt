@@ -1,0 +1,13 @@
+Subject: Persistent Domain Verification Error (#MS42207)
+
+Dear MailerSend Support,
+
+I am experiencing a persistent issue with domain verification for sending emails, despite having updated all DNS records and receiving confirmation that my domain is ready.
+
+My domain is `mjkprints.store`.
+
+I have ensured that all required DNS records (SPF, DKIM, and DMARC) are correctly configured and show as verified in my MailerSend dashboard. However, when attempting to send emails via your API, I consistently receive the error message: `The from.email domain must be verified in your account to send emails. #MS42207`.
+
+Could you please investigate this issue from your end? It appears there might be a discrepancy between my dashboard's status and your API's verification status for my domain.
+
+Thank you for your assistance.
