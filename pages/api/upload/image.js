@@ -540,7 +540,8 @@ export default async function handler(req, res) {
         processingStatus: 'completed',
         uploadedAt: fileUpload.created_at,
         metadata: imageValidation.metadata,
-        processingTime: processingTime
+        processingTime: processingTime,
+        publicUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/mjk-prints-storage/${storagePath}`
       }
     })
 
