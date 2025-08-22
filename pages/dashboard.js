@@ -158,59 +158,12 @@ export default function Dashboard() {
   const filteredFiles = getFilteredFiles()
 
   const handleDeleteFile = async (fileId, fileName) => {
-    // Find the file to get detailed info for confirmation
-    const fileToDelete = files.find(f => f.id === fileId)
-    if (!fileToDelete) {
-      alert('File not found!')
-      return
-    }
-
-    // Create detailed confirmation message
-    const fileType = fileToDelete.file_type === 'pdf' ? 'PDF file' : 'Image file'
-    const linkStatus = fileToDelete.is_orphaned ? 'NOT linked to any product' : `linked to product: "${fileToDelete.product_title}"`
-    
-    const confirmMessage = `🗑️ DELETE ${fileType.toUpperCase()}
-
-File: "${fileName}"
-Type: ${fileType}
-Status: ${linkStatus}
-Storage: ${fileToDelete.storage_path}
-
-⚠️ WARNING: ${fileToDelete.file_type === 'pdf' ? 'This will delete the actual PDF file that customers would download!' : 'This will delete the cover/preview image for the product.'}
-
-${!fileToDelete.is_orphaned ? '🚨 This file is linked to a product and deleting it may break the product display!' : '✅ This orphaned file can be safely deleted.'}
-
-Are you sure you want to permanently delete this ${fileType}?`
-
-    if (!confirm(confirmMessage)) {
-      return
-    }
-
-    setIsDeletingFile(fileId)
-    
-    try {
-      const response = await fetch(`/api/files/${fileId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        // Refresh both files and products data
-        await fetchProducts()
-        if (activeTab === 'files') {
-          await fetchFiles()
-        }
-      } else {
-        const errorData = await response.json()
-        alert(`Failed to delete file: ${errorData.error}`)
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error)
-      alert('Error deleting file')
-    } finally {
-      setIsDeletingFile(null)
-    }
+    console.log(`Attempting to delete file: ${fileName} (ID: ${fileId})`);
+    alert(`Simulating delete for file: ${fileName}`);
+    // Original code removed for debugging
   };
 
+  console.log('handleDeleteFile at render:', typeof handleDeleteFile, handleDeleteFile);
   return (
     <>
       <Head>
@@ -592,9 +545,11 @@ Are you sure you want to permanently delete this ${fileType}?`
                                     </>
                                   )}
                                   <button 
-                                    onClick={() => handleDeleteFile(file.id, file.file_name)}
-                                    disabled={isDeletingFile === file.id}
-                                    className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                                    onClick={() => {
+                                      console.log('handleDeleteFile on click:', typeof handleDeleteFile, handleDeleteFile);
+                                      handleDeleteFile();
+                                    }} 
+                                    className="text-xs text-red-600 hover:text-red-800 font-medium"
                                   >
                                     {isDeletingFile === file.id ? 'Deleting...' : 'Delete'}
                                   </button>
