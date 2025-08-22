@@ -44,6 +44,20 @@ export default function Dashboard() {
   */
 
   useEffect(() => {
+    const deleteButton = document.getElementById('delete-file-button');
+    if (deleteButton) {
+      const handleClick = () => {
+        console.log('Native click handler: handleDeleteFile is', typeof handleDeleteFile, handleDeleteFile);
+        handleDeleteFile();
+      };
+      deleteButton.addEventListener('click', handleClick);
+      return () => {
+        deleteButton.removeEventListener('click', handleClick);
+      };
+    }
+  }, [handleDeleteFile]);
+
+  useEffect(() => {
     fetchProducts();
   }, []);
 
@@ -593,7 +607,7 @@ Are you sure you want to permanently delete this ${fileType}?`
                                     </>
                                   )}
                                   <button 
-                                    onClick={handleDeleteFile} 
+                                    id="delete-file-button" 
                                     className="text-xs text-red-600 hover:text-red-800 font-medium"
                                   >
                                     {isDeletingFile === file.id ? 'Deleting...' : 'Delete'}
