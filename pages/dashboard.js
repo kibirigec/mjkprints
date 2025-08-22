@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [editingProduct, setEditingProduct] = useState(null);
 
   // Update activity when user interacts with dashboard
+  /*
   useEffect(() => {
     const handleUserActivity = () => {
       updateActivity()
@@ -40,6 +41,7 @@ export default function Dashboard() {
       })
     }
   }, [updateActivity])
+  */
 
   useEffect(() => {
     fetchProducts();
@@ -216,8 +218,7 @@ Are you sure you want to permanently delete this ${fileType}?`
         <meta name="description" content="Secure admin dashboard for managing digital prints" />
       </Head>
       
-      <PasscodeProtection>
-        <div className="min-h-screen bg-accent">
+      <div className="min-h-screen bg-accent">
           {/* Minimal Header with Logo Only */}
           <header className="bg-white shadow-sm border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -629,7 +630,6 @@ Are you sure you want to permanently delete this ${fileType}?`
         />
           <Footer />
         </div>
-      </PasscodeProtection>
-    </>
+      </>
   );
 }
