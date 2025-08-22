@@ -23,70 +23,54 @@ export default function Dashboard() {
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [editingProduct, setEditingProduct] = useState(null);
 
-  // Update activity when user interacts with dashboard
-  /*
-  useEffect(() => {
-    const handleUserActivity = () => {
-      updateActivity()
+  // Import supabase client
+  import { supabase } from '../../lib/supabase/client';
+
+  // --- fetch products ---
+  const fetchProducts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*");
+
+    if (error) {
+      console.error("Error fetching products:", error);
+      setProducts([]); // Ensure products is an empty array on error
+    } else {
+      setProducts(data);
     }
+    setIsLoading(false); // Set loading to false after fetch
+  }, []); // no dependency on products — only redefined if supabase changes
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
-    events.forEach(event => {
-      document.addEventListener(event, handleUserActivity, true)
-    })
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleUserActivity, true)
-      })
-    }
-  }, [updateActivity])
-  */
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'files' && products.length > 0) {
-      fetchFiles();
-    }
-  }, [activeTab, products]);
-
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch('/api/products');
-      const data = await res.json();
-      setProducts(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-      setProducts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchFiles = async () => {
+  // --- fetch files ---
+  const fetchFiles = useCallback(async () => {
     setIsFilesLoading(true);
     try {
-      // Fetch all files directly from file_uploads table
-      const response = await fetch('/api/debug/list-all-files');
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch files');
+      const { data: fileUploads, error: fileError } = await supabase
+        .from("file_uploads")
+        .select("*");
+
+      if (fileError) {
+        console.error("Error fetching file_uploads:", fileError);
+        setFiles([]);
+        return;
+      }
+
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select("id, title, pdf_file_id, image_file_id");
+
+      if (productsError) {
+        console.error("Error fetching products for file linking:", productsError);
+        // Continue with files even if products fetch fails
       }
 
       const allFiles = [];
-      
-      // Get files from the file_uploads table directly
-      if (Array.isArray(result.fileUploads)) {
-        result.fileUploads.forEach(file => {
-          // Find which product (if any) references this file
-          const referencingProduct = result.products?.find(product => 
+      if (Array.isArray(fileUploads)) {
+        fileUploads.forEach(file => {
+          const referencingProduct = productsData?.find(product =>
             product.pdf_file_id === file.id || product.image_file_id === file.id
           );
-          
+
           allFiles.push({
             ...file,
             product_title: referencingProduct?.title || null,
@@ -97,9 +81,7 @@ export default function Dashboard() {
         });
       }
 
-      // Sort files by creation date (newest first)
       allFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      
       setFiles(allFiles);
     } catch (err) {
       console.error('Error fetching files:', err);
@@ -107,7 +89,111 @@ export default function Dashboard() {
     } finally {
       setIsFilesLoading(false);
     }
+  }, []);
+
+  // --- delete file ---
+  const handleDeleteFile = useCallback(
+    async (fileId, fileName) => {
+      console.log("Deleting file:", fileId, fileName);
+
+      // Find the file to get detailed info for confirmation
+      const fileToDelete = files.find(f => f.id === fileId)
+      if (!fileToDelete) {
+        alert('File not found!')
+        return
+      }
+
+      // Create detailed confirmation message
+      const fileType = fileToDelete.file_type === 'pdf' ? 'PDF file' : 'Image file'
+      const linkStatus = fileToDelete.is_orphaned ? 'NOT linked to any product' : `linked to product: "${fileToDelete.product_title}"`
+
+      const confirmMessage = `🗑️ DELETE ${fileType.toUpperCase()}
+
+File: "${fileName}"
+Type: ${fileType}
+Status: ${linkStatus}
+Storage: ${fileToDelete.storage_path}
+
+⚠️ WARNING: ${fileToDelete.file_type === 'pdf' ? 'This will delete the actual PDF file that customers would download!' : 'This will delete the cover/preview image for the product.'}
+
+${!fileToDelete.is_orphaned ? '🚨 This file is linked to a product and deleting it may break the product display!' : '✅ This orphaned file can be safely deleted.'}
+
+Are you sure you want to permanently delete this ${fileType}?`
+
+      if (!confirm(confirmMessage)) {
+        return
+      }
+
+      setIsDeletingFile(fileId);
+
+      try {
+        // delete from supabase storage
+        const { error: storageError } = await supabase.storage
+          .from("mjk-prints-storage")
+          .remove([fileToDelete.storage_path]); // Use storage_path for deletion
+
+        if (storageError) {
+          console.error("Storage deletion error:", storageError);
+          alert(`Failed to delete file from storage: ${storageError.message}`);
+          return;
+        }
+
+        // delete from DB
+        const { error: dbError } = await supabase
+          .from("file_uploads") // Assuming your file uploads table is named 'file_uploads'
+          .delete()
+          .eq("id", fileId);
+
+        if (dbError) {
+          console.error("Database deletion error:", dbError);
+          alert(`Failed to delete file record from database: ${dbError.message}`);
+          return;
+        }
+
+        alert('File deleted successfully!');
+
+        // refetch fresh data
+        if (activeTab === "files") {
+          fetchFiles();
+        } else {
+          fetchProducts();
+        }
+      } catch (error) {
+        console.error('Error during file deletion:', error);
+        alert(`An unexpected error occurred during deletion: ${error.message}`);
+      } finally {
+        setIsDeletingFile(null);
+      }
+    },
+    [activeTab, fetchFiles, fetchProducts, files, setIsDeletingFile] // ✅ stable dependencies
+  );
+
+  // --- load data on mount ---
+  useEffect(() => {
+    if (activeTab === "files") {
+      fetchFiles();
+    }
+    else {
+      fetchProducts();
+    }
+  }, [activeTab, fetchFiles, fetchProducts]);
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   };
+
+  // Filter files based on selected type
+  const getFilteredFiles = () => {
+    if (fileTypeFilter === 'all') return files
+    if (fileTypeFilter === 'orphaned') return files.filter(file => file.is_orphaned)
+    return files.filter(file => file.file_type === fileTypeFilter)
+  }
+
+  const filteredFiles = getFilteredFiles()
 
   // Modal handlers
   const openAddModal = () => {
@@ -140,76 +226,27 @@ export default function Dashboard() {
     openEditModal(product);
   };
 
-  const formatFileSize = (bytes) => {
-    if (!bytes) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-  };
-
-  // Filter files based on selected type
-  const getFilteredFiles = () => {
-    if (fileTypeFilter === 'all') return files
-    if (fileTypeFilter === 'orphaned') return files.filter(file => file.is_orphaned)
-    return files.filter(file => file.file_type === fileTypeFilter)
-  }
-
-  const filteredFiles = getFilteredFiles()
-
-  const handleDeleteFile = useCallback(async (fileId, fileName) => {
-    // Find the file to get detailed info for confirmation
-    const fileToDelete = files.find(f => f.id === fileId)
-    if (!fileToDelete) {
-      alert('File not found!')
-      return
+  // Update activity when user interacts with dashboard
+  /*
+  useEffect(() => {
+    const handleUserActivity = () => {
+      updateActivity()
     }
 
-    // Create detailed confirmation message
-    const fileType = fileToDelete.file_type === 'pdf' ? 'PDF file' : 'Image file'
-    const linkStatus = fileToDelete.is_orphaned ? 'NOT linked to any product' : `linked to product: "${fileToDelete.product_title}"`
-    
-    const confirmMessage = `🗑️ DELETE ${fileType.toUpperCase()}
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
+    events.forEach(event => {
+      document.addEventListener(event, handleUserActivity, true)
+    })
 
-File: "${fileName}"
-Type: ${fileType}
-Status: ${linkStatus}
-Storage: ${fileToDelete.storage_path}
-
-⚠️ WARNING: ${fileToDelete.file_type === 'pdf' ? 'This will delete the actual PDF file that customers would download!' : 'This will delete the cover/preview image for the product.'}
-
-${!fileToDelete.is_orphaned ? '🚨 This file is linked to a product and deleting it may break the product display!' : '✅ This orphaned file can be safely deleted.'}
-
-Are you sure you want to permanently delete this ${fileType}?`
-
-    if (!confirm(confirmMessage)) {
-      return
-    }
-
-    setIsDeletingFile(fileId)
-    
-    try {
-      const response = await fetch(`/api/files/${fileId}`, {
-        method: 'DELETE',
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserActivity, true)
       })
-
-      if (response.ok) {
-        // Refresh both files and products data
-        await fetchProducts()
-        if (activeTab === 'files') {
-          await fetchFiles()
-        }
-      } else {
-        const errorData = await response.json()
-        alert(`Failed to delete file: ${errorData.error}`)
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error)
-      alert('Error deleting file')
-    } finally {
-      setIsDeletingFile(null)
     }
-  }, [files, fetchProducts, fetchFiles, activeTab, setIsDeletingFile]);
+  }, [updateActivity])
+  */
+
+  
   return (
     <>
       <Head>
