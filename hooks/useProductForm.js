@@ -136,6 +136,7 @@ export const useProductForm = ({ mode, editProduct, onSave, onSuccess, onClose }
     setIsSubmitting(true);
 
     const productData = { ...formData, price: parseFloat(formData.price) };
+    console.log('Product data being sent:', productData);
     if (processedPDFData) productData.pdfFileId = processedPDFData.id;
     if (processedImageData) productData.imageFileId = processedImageData.id;
 
