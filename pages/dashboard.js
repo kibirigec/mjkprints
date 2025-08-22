@@ -7,8 +7,7 @@ import DashboardTable from '../components/DashboardTable';
 import ProductModal from '../components/ProductModal';
 import PasscodeProtection from '../components/PasscodeProtection';
 import { useAdminAuth } from '../context/AdminAuthContext';
-import { supabase } from '../lib/supabase/client';
-
+import {supabase} from '../lib/supabase/client'
 
 export default function Dashboard() {
   const { logout, updateActivity } = useAdminAuth()
@@ -166,7 +165,7 @@ Are you sure you want to permanently delete this ${fileType}?`
         setIsDeletingFile(null);
       }
     },
-    [activeTab, fetchFiles, fetchProducts, files, setIsDeletingFile] // ✅ stable dependencies
+    [activeTab, fetchFiles, fetchProducts, files] // Removed setIsDeletingFile from dependencies
   );
 
   // --- load data on mount ---
