@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Footer from '../components/Footer';
@@ -42,20 +42,6 @@ export default function Dashboard() {
     }
   }, [updateActivity])
   */
-
-  useEffect(() => {
-    const deleteButton = document.getElementById('delete-file-button');
-    if (deleteButton) {
-      const handleClick = () => {
-        console.log('Native click handler: handleDeleteFile is', typeof handleDeleteFile, handleDeleteFile);
-        handleDeleteFile();
-      };
-      deleteButton.addEventListener('click', handleClick);
-      return () => {
-        deleteButton.removeEventListener('click', handleClick);
-      };
-    }
-  }, [handleDeleteFile]);
 
   useEffect(() => {
     fetchProducts();
@@ -171,7 +157,7 @@ export default function Dashboard() {
 
   const filteredFiles = getFilteredFiles()
 
-  const handleDeleteFile = async (fileId, fileName) => {
+  const handleDeleteFile = useCallback(async (fileId, fileName) => {
     // Find the file to get detailed info for confirmation
     const fileToDelete = files.find(f => f.id === fileId)
     if (!fileToDelete) {
@@ -223,9 +209,7 @@ Are you sure you want to permanently delete this ${fileType}?`
     } finally {
       setIsDeletingFile(null)
     }
-  };
-
-  console.log('handleDeleteFile at render:', typeof handleDeleteFile, handleDeleteFile);
+  }, [files, fetchProducts, fetchFiles, activeTab, setIsDeletingFile]);
   return (
     <>
       <Head>
@@ -607,8 +591,9 @@ Are you sure you want to permanently delete this ${fileType}?`
                                     </>
                                   )}
                                   <button 
-                                    id="delete-file-button" 
-                                    className="text-xs text-red-600 hover:text-red-800 font-medium"
+                                    onClick={() => handleDeleteFile(file.id, file.file_name)}
+                                    disabled={isDeletingFile === file.id}
+                                    className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
                                   >
                                     {isDeletingFile === file.id ? 'Deleting...' : 'Delete'}
                                   </button>
