@@ -113,6 +113,11 @@ export const useProductForm = ({ mode, editProduct, onSave, onSuccess, onClose }
     setImageProcessingStatus('completed');
     setImageError(null);
     setErrors(prev => ({ ...prev, image: null, submit: null }));
+
+    // NEW: Update formData.image with the public URL of the uploaded image
+    if (imageFile && imageFile.publicUrl) {
+      setFormData(prev => ({ ...prev, image: imageFile.publicUrl }));
+    }
     const updates = {};
     if (!formData.title.trim()) {
       const baseName = imageFile.fileName?.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '') || 'Digital Artwork';
