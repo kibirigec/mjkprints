@@ -223,7 +223,7 @@ export class ServerSecurity {
       sameSite: 'lax',
       maxAge: SECURITY_CONFIG.SESSION_TIMEOUT / 1000, // Convert to seconds
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? 'your-production-domain.com' : undefined // Set your actual production domain here
+      domain: process.env.NODE_ENV === 'production' ? 'mjkprints.store' : undefined // Set your actual production domain here
     }
   }
 
