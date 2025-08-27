@@ -222,7 +222,8 @@ export class ServerSecurity {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: SECURITY_CONFIG.SESSION_TIMEOUT / 1000, // Convert to seconds
-      path: '/'
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? 'your-production-domain.com' : undefined // Set your actual production domain here
     }
   }
 
