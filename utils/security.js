@@ -220,7 +220,7 @@ export class ServerSecurity {
     return {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: SECURITY_CONFIG.SESSION_TIMEOUT / 1000, // Convert to seconds
       path: '/'
     }
