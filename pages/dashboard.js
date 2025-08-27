@@ -5,12 +5,13 @@ import Link from 'next/link';
 import Footer from '../components/Footer';
 import DashboardTable from '../components/DashboardTable';
 import ProductModal from '../components/ProductModal';
+// import PasscodeProtection from '../components/PasscodeProtection';
 import PasscodeProtection from '../components/PasscodeProtection';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import {supabase} from '../lib/supabase/client'
 
 export default function Dashboard() {
-  const { logout, updateActivity } = useAdminAuth()
+  const { logout } = useAdminAuth()
   const [products, setProducts] = useState([]);
   const [files, setFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,22 +93,21 @@ export default function Dashboard() {
   }, []);
 
   // --- delete file ---
-  const handleDeleteFile = useCallback(
-    async (fileId, fileName) => {
-      console.log("Deleting file:", fileId, fileName);
+  const handleDeleteFile = async (fileId, fileName) => {
+    console.log("Deleting file:", fileId, fileName);
 
-      // Find the file to get detailed info for confirmation
-      const fileToDelete = files.find(f => f.id === fileId)
-      if (!fileToDelete) {
-        alert('File not found!')
-        return
-      }
+    // Find the file to get detailed info for confirmation
+    const fileToDelete = files.find(f => f.id === fileId)
+    if (!fileToDelete) {
+      alert('File not found!')
+      return
+    }
 
-      // Create detailed confirmation message
-      const fileType = fileToDelete.file_type === 'pdf' ? 'PDF file' : 'Image file'
-      const linkStatus = fileToDelete.is_orphaned ? 'NOT linked to any product' : `linked to product: "${fileToDelete.product_title}"`
+    // Create detailed confirmation message
+    const fileType = fileToDelete.file_type === 'pdf' ? 'PDF file' : 'Image file'
+    const linkStatus = fileToDelete.is_orphaned ? 'NOT linked to any product' : `linked to product: "${fileToDelete.product_title}"`
 
-      const confirmMessage = `🗑️ DELETE ${fileType.toUpperCase()}
+    const confirmMessage = `🗑️ DELETE ${fileType.toUpperCase()}
 
 File: "${fileName}"
 Type: ${fileType}
@@ -120,53 +120,51 @@ ${!fileToDelete.is_orphaned ? '🚨 This file is linked to a product and deletin
 
 Are you sure you want to permanently delete this ${fileType}?`
 
-      if (!confirm(confirmMessage)) {
-        return
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    setIsDeletingFile(fileId);
+
+    try {
+      // delete from supabase storage
+      const { error: storageError } = await supabase.storage
+        .from("mjk-prints-storage")
+        .remove([fileToDelete.storage_path]); // Use storage_path for deletion
+
+      if (storageError) {
+        console.error("Storage deletion error:", storageError);
+        alert(`Failed to delete file from storage: ${storageError.message}`);
+        return;
       }
 
-      setIsDeletingFile(fileId);
+      // delete from DB
+      const { error: dbError } = await supabase
+        .from("file_uploads") // Assuming your file uploads table is named 'file_uploads'
+        .delete()
+        .eq("id", fileId);
 
-      try {
-        // delete from supabase storage
-        const { error: storageError } = await supabase.storage
-          .from("mjk-prints-storage")
-          .remove([fileToDelete.storage_path]); // Use storage_path for deletion
-
-        if (storageError) {
-          console.error("Storage deletion error:", storageError);
-          alert(`Failed to delete file from storage: ${storageError.message}`);
-          return;
-        }
-
-        // delete from DB
-        const { error: dbError } = await supabase
-          .from("file_uploads") // Assuming your file uploads table is named 'file_uploads'
-          .delete()
-          .eq("id", fileId);
-
-        if (dbError) {
-          console.error("Database deletion error:", dbError);
-          alert(`Failed to delete file record from database: ${dbError.message}`);
-          return;
-        }
-
-        alert('File deleted successfully!');
-
-        // refetch fresh data
-        if (activeTab === "files") {
-          fetchFiles();
-        } else {
-          fetchProducts();
-        }
-      } catch (error) {
-        console.error('Error during file deletion:', error);
-        alert(`An unexpected error occurred during deletion: ${error.message}`);
-      } finally {
-        setIsDeletingFile(null);
+      if (dbError) {
+        console.error("Database deletion error:", dbError);
+        alert(`Failed to delete file record from database: ${dbError.message}`);
+        return;
       }
-    },
-    [activeTab, fetchFiles, fetchProducts, files] // Removed setIsDeletingFile from dependencies
-  );
+
+      alert('File deleted successfully!');
+
+      // refetch fresh data
+      if (activeTab === "files") {
+        fetchFiles();
+      } else {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error during file deletion:', error);
+      alert(`An unexpected error occurred during deletion: ${error.message}`);
+    } finally {
+      setIsDeletingFile(null);
+    }
+  };
 
   // --- load data on mount ---
   useEffect(() => {
@@ -254,9 +252,10 @@ Are you sure you want to permanently delete this ${fileType}?`
         <meta name="description" content="Secure admin dashboard for managing digital prints" />
       </Head>
       
-      <div className="min-h-screen bg-accent">
-          {/* Minimal Header with Logo Only */}
-          <header className="bg-white shadow-sm border-b border-gray-200">
+      <PasscodeProtection>
+        <div className="min-h-screen bg-accent">
+            {/* Minimal Header with Logo Only */}
+            <header className="bg-white shadow-sm border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 {/* Logo Only */}
@@ -666,6 +665,7 @@ Are you sure you want to permanently delete this ${fileType}?`
         />
           <Footer />
         </div>
-      </>
+      </PasscodeProtection>
+    </>
   );
 }
