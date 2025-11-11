@@ -201,11 +201,30 @@ export default async function handler(req, res) {
   }
 }
 
+// Helper function to parse cookies from request
+function parseCookies(req) {
+  const cookies = {}
+  const cookieHeader = req.headers.cookie
+  
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach(cookie => {
+      const [name, ...rest] = cookie.split('=')
+      const value = rest.join('=').trim()
+      if (name && value) {
+        cookies[name.trim()] = decodeURIComponent(value)
+      }
+    })
+  }
+  
+  return cookies
+}
+
 // Verify admin session middleware (can be used in other admin routes)
 export function verifyAdminSession(req, res, next) {
   try {
     // SECURITY: Read session token from HTTP-only cookie
-    const sessionToken = req.cookies?.['mjk-admin-session']
+    const cookies = parseCookies(req)
+    const sessionToken = cookies['mjk-admin-session']
     
     if (!sessionToken) {
       return res.status(401).json({ error: 'No session cookie found' })

@@ -9,11 +9,15 @@ import { verifyAdminSession } from '../admin/auth'
 // Configure Next.js to disable bodyParser for this route
 export const config = {
   api: {
-    bodyParser: false
-  }
+    bodyParser: false,
+    responseLimit: false, // Disable response size limit
+    externalResolver: true, // Prevent timeout warnings
+  },
+  // Set maximum execution time (for platforms that support it)
+  maxDuration: 300, // 5 minutes
 }
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB in bytes
+const MAX_FILE_SIZE = 500 * 1024 * 1024 // 500MB in bytes
 const ALLOWED_MIME_TYPES = ['application/pdf']
 const UPLOAD_DIR = '/tmp' // Use system temp directory
 
@@ -263,6 +267,11 @@ export default async function handler(req, res) {
       maxFileSize: MAX_FILE_SIZE,
       maxFiles: 1,
       multiples: false,
+      // Increase timeouts for large files
+      maxFieldsSize: 500 * 1024 * 1024, // 500MB
+      maxTotalFileSize: 500 * 1024 * 1024, // 500MB total
+      // Add progress logging for large uploads
+      enabledPlugins: ['octetstream', 'querystring', 'json'],
       filename: (name, ext, part) => {
         // Generate secure filename
         const timestamp = Date.now()
@@ -270,11 +279,32 @@ export default async function handler(req, res) {
         return `pdf_${timestamp}_${randomBytes}${ext}`
       }
     })
+    
+    // Add progress tracking for large files
+    let uploadProgress = 0
+    form.on('progress', (bytesReceived, bytesExpected) => {
+      const progress = Math.round((bytesReceived / bytesExpected) * 100)
+      if (progress !== uploadProgress && progress % 10 === 0) {
+        uploadProgress = progress
+        log('info', 'Upload progress', { 
+          requestId, 
+          progress: `${progress}%`,
+          received: `${(bytesReceived / (1024 * 1024)).toFixed(2)}MB`,
+          expected: `${(bytesExpected / (1024 * 1024)).toFixed(2)}MB`
+        })
+      }
+    })
 
     const [fields, files] = await new Promise((resolve, reject) => {
+      // Set a longer timeout for large files (10 minutes)
+      const timeout = setTimeout(() => {
+        reject(new Error('Upload timeout: File upload took longer than 10 minutes'))
+      }, 10 * 60 * 1000)
+      
       form.parse(req, (err, fields, files) => {
+        clearTimeout(timeout)
         if (err) {
-          log('error', 'Form parsing failed', { requestId, error: err.message })
+          log('error', 'Form parsing failed', { requestId, error: err.message, code: err.code })
           reject(err)
         } else {
           log('info', 'Form parsing completed', { 
