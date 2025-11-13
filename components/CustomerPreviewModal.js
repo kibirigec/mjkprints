@@ -337,16 +337,18 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
           </div>
 
           {/* Purchase Panel */}
-          <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200">
-            <div className="p-3 sm:p-6 space-y-3 sm:space-y-6">
+          <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-6">
               {/* Product Info */}
               <div>
                 <h3 className="text-lg font-bold text-primary mb-1 sm:mb-2">
                   {normalizedProduct.title}
                 </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {normalizedProduct.description || 'High-quality digital artwork perfect for your creative projects. Instant download after purchase.'}
-                </p>
+                <div className="max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {normalizedProduct.description || 'High-quality digital artwork perfect for your creative projects. Instant download after purchase.'}
+                  </p>
+                </div>
               </div>
 
               {/* Features */}
@@ -513,6 +515,31 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
         /* Radial gradient utility */
         .bg-gradient-radial {
           background: radial-gradient(circle, var(--tw-gradient-stops));
+        }
+        
+        /* Custom scrollbar for description */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e0;
+          border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #a0aec0;
+        }
+        
+        /* Firefox scrollbar */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e0 #f1f1f1;
         }
       `}</style>
     </div>
