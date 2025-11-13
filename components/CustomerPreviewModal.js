@@ -344,51 +344,11 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
                 <h3 className="text-lg font-bold text-primary mb-1 sm:mb-2">
                   {normalizedProduct.title}
                 </h3>
-                <div className="max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="max-h-32 overflow-y-scroll pr-2 custom-scrollbar">
                   <p className="text-gray-600 text-sm leading-relaxed">
                     {normalizedProduct.description || 'High-quality digital artwork perfect for your creative projects. Instant download after purchase.'}
                   </p>
                 </div>
-              </div>
-
-              {/* Features */}
-              <div className="bg-green-50 rounded-lg p-3 sm:p-4">
-                <h4 className="font-semibold text-green-800 mb-2 sm:mb-3 flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  What You Get
-                </h4>
-                <ul className="space-y-1 sm:space-y-2 text-sm text-green-700">
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                    High-resolution digital file
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                    Instant download after purchase
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                    Commercial use license
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                    Lifetime access to downloads
-                  </li>
-                  {isHybrid && (
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                      Both preview image and PDF content included
-                    </li>
-                  )}
-                  {hasPDF && pageCount > 0 && (
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                      {formatPageCount(pageCount)} in PDF format
-                    </li>
-                  )}
-                </ul>
               </div>
 
               {/* Pricing */}
@@ -517,29 +477,29 @@ export default function CustomerPreviewModal({ product, isOpen, onClose }) {
           background: radial-gradient(circle, var(--tw-gradient-stops));
         }
         
-        /* Custom scrollbar for description */
+        /* Custom scrollbar for description - always visible */
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+          width: 8px;
         }
         
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
+          background: #e2e8f0;
+          border-radius: 4px;
         }
         
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e0;
-          border-radius: 3px;
+          background: #94a3b8;
+          border-radius: 4px;
         }
         
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #a0aec0;
+          background: #64748b;
         }
         
-        /* Firefox scrollbar */
+        /* Firefox scrollbar - always visible */
         .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #cbd5e0 #f1f1f1;
+          scrollbar-width: auto;
+          scrollbar-color: #94a3b8 #e2e8f0;
         }
       `}</style>
     </div>
