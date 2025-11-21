@@ -227,7 +227,8 @@ export function verifyAdminSession(req, res, next) {
     const sessionToken = cookies['mjk-admin-session']
     
     if (!sessionToken) {
-      return res.status(401).json({ error: 'No session cookie found' })
+      res.status(401).json({ error: 'No session cookie found' })
+      return false
     }
 
     const sessionData = ServerSecurity.verifySessionToken(sessionToken)
@@ -243,7 +244,8 @@ export function verifyAdminSession(req, res, next) {
       })
       res.setHeader('Set-Cookie', clearCookie)
       
-      return res.status(401).json({ error: 'Invalid or expired session' })
+      res.status(401).json({ error: 'Invalid or expired session' })
+      return false
     }
 
     // Optional: Verify IP address hasn't changed (prevents session hijacking)
@@ -267,6 +269,7 @@ export function verifyAdminSession(req, res, next) {
     }
   } catch (error) {
     console.error('Session verification error:', error)
-    return res.status(401).json({ error: 'Session verification failed' })
+    res.status(401).json({ error: 'Session verification failed' })
+    return false
   }
 }
