@@ -182,11 +182,14 @@ export default async function handler(req, res) {
     
     res.setHeader('Set-Cookie', sessionCookie)
     
-
-    // Don't send token in response - it's now in secure HTTP-only cookie
+    // Send a client-side session identifier (not used for authentication, just for UI state)
+    // The actual authentication uses the HTTP-only cookie
+    const clientSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
     return res.status(200).json({
       success: true,
       message: 'Authentication successful',
+      token: clientSessionId, // Client-side session tracking only
       expiresAt: Date.now() + (2 * 60 * 60 * 1000) // 2 hours
     })
 

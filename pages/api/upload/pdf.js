@@ -204,12 +204,17 @@ export default async function handler(req, res) {
     const isAuthenticated = verifyAdminSession(req, res)
     if (!isAuthenticated) {
       log('warn', 'Unauthenticated upload attempt', { requestId })
-      return // Response already sent by verifyAdminSession
+      // Response already sent by verifyAdminSession, just return
+      return
     }
     log('info', 'Authentication successful', { requestId })
   } catch (error) {
     log('error', 'Authentication error', { requestId, error: error.message })
-    return res.status(401).json({ error: 'Authentication required' })
+    // Check if response was already sent
+    if (!res.headersSent) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+    return
   }
 
   // Rate limiting
@@ -270,8 +275,6 @@ export default async function handler(req, res) {
       // Increase timeouts for large files
       maxFieldsSize: 500 * 1024 * 1024, // 500MB
       maxTotalFileSize: 500 * 1024 * 1024, // 500MB total
-      // Add progress logging for large uploads
-      enabledPlugins: ['octetstream', 'querystring', 'json'],
       filename: (name, ext, part) => {
         // Generate secure filename
         const timestamp = Date.now()
