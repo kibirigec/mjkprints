@@ -229,11 +229,11 @@ export default function Home({ featuredProducts }) {
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden p-8 sm:p-12 text-center md:text-left">
                 <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6 uppercase tracking-wide">
-                  HI! I'm Jullan
+                  HI! I'm Julius
                 </h2>
                 <div className="space-y-4 text-gray-700 text-lg leading-relaxed font-medium">
                   <p>
-                    Hi! I'm Julian the creator behind MJK Prints a passionate designer who believes that staying organised shouldn't feel overwhelming, especially if you have ADHD. Every planner I design is thoughtfully crafted to be beautiful, practical and actually usable in the chaos of everyday life.
+                    Hi! I'm Julius the creator behind MJK Prints a passionate designer who believes that staying organised shouldn't feel overwhelming, especially if you have ADHD. Every planner I design is thoughtfully crafted to be beautiful, practical and actually usable in the chaos of everyday life.
                   </p>
                   <p>
                     I started MJK Prints because I couldn't find planners that worked for my brain - so I built them myself. Today I create digital and printable PDF planners for ADHD adults, busy moms and anyone who wants to feel more in control of their days without complicated systems.
