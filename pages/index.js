@@ -44,8 +44,8 @@ export default function Home({ featuredProducts }) {
   return (
     <>
       <Head>
-        <title>MJK Prints - Unique Digital Art Prints</title>
-        <meta name="description" content="Discover unique digital prints from independent designers. High-quality, instant downloads for your creative projects." />
+        <title>MJK Prints-ADHD & MOMs Printable and digital planners</title>
+        <meta name="description" content="Discover beautifully designed planners for adhd adults and busy moms. Use digitally on your tablet or print at home-instant download, ready in seconds." />
         <link rel="dns-prefetch" href="//images.unsplash.com" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="" />
       </Head>
@@ -76,12 +76,12 @@ export default function Home({ featuredProducts }) {
                 <div className="absolute inset-0 flex items-center justify-center px-4">
                   <div className="bg-white/80 backdrop-blur-sm p-6 sm:p-8 w-full max-w-lg sm:max-w-xl text-center rounded-lg shadow-lg">
                     <p className="text-xs sm:text-sm uppercase tracking-wide text-white mb-2">NEW 2025-2026</p>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary mb-2 leading-tight">
-                      Best-Selling
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary mb-3 leading-tight">
+                      Discover beautifully designed planners
                     </h1>
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold italic text-secondary mb-4 leading-tight">
-                      Digital Planners
-                    </h2>
+                    <p className="text-sm sm:text-base font-medium text-gray-800 mb-4 leading-tight">
+                      for adhd adults and busy moms. Use digitally on your tablet or print at home-instant download, ready in seconds.
+                    </p>
                     
                     <button 
                       onClick={() => document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' })}
@@ -130,12 +130,12 @@ export default function Home({ featuredProducts }) {
                 <div className="absolute inset-4 sm:inset-y-0 sm:right-8 flex items-center justify-center sm:justify-end pointer-events-none z-10">
                   <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 lg:p-8 max-w-sm sm:max-w-md lg:max-w-lg xl:w-[585px] shadow-lg text-center rounded-lg sm:rounded-none">
                     <p className="text-xs sm:text-sm uppercase tracking-wide text-gray-500 mb-2">NEW 2025-2026</p>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-primary mb-2 leading-tight">
-                      Best-Selling
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-primary mb-3 leading-tight">
+                      Discover beautifully designed planners
                     </h1>
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold italic text-secondary mb-4 sm:mb-6 leading-tight">
-                      Digital Planners
-                    </h2>
+                    <p className="text-sm sm:text-lg font-medium text-gray-800 mb-4 sm:mb-6 leading-relaxed">
+                      for adhd adults and busy moms. Use digitally on your tablet or print at home-instant download, ready in seconds.
+                    </p>
                     
                     {/* Shop Now Button */}
                     <button 
@@ -224,15 +224,24 @@ export default function Home({ featuredProducts }) {
             </div>
           </section>
 
-          {/* Additional Promotional Section */}
-          <section className="py-16 bg-gradient-to-r from-secondary/10 to-accent">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center">
-                <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
-                Boost your productivity with ease
+          {/* About the Creator Section */}
+          <section className="py-16 sm:py-24 bg-[#F6F1E8]">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="bg-white rounded-2xl shadow-xl overflow-hidden p-8 sm:p-12 text-center md:text-left">
+                <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6 uppercase tracking-wide">
+                  HI! I'm Jullan
                 </h2>
-                <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-                Explore our beautifully crafted digital planners designed to help you organize your life, set clear goals, and stay focused on what truly matters.                </p>
+                <div className="space-y-4 text-gray-700 text-lg leading-relaxed font-medium">
+                  <p>
+                    Hi! I'm Julian the creator behind MJK Prints a passionate designer who believes that staying organised shouldn't feel overwhelming, especially if you have ADHD. Every planner I design is thoughtfully crafted to be beautiful, practical and actually usable in the chaos of everyday life.
+                  </p>
+                  <p>
+                    I started MJK Prints because I couldn't find planners that worked for my brain - so I built them myself. Today I create digital and printable PDF planners for ADHD adults, busy moms and anyone who wants to feel more in control of their days without complicated systems.
+                  </p>
+                  <p>
+                    All my planners are instant PDF downloads no waiting, no shipping, just beautifully designed pages ready to use on your tablet or print at home today.
+                  </p>
+                </div>
               </div>
             </div>
           </section>

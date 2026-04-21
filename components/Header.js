@@ -34,7 +34,7 @@ export default function Header() {
               </div>
               <div className="hidden sm:block">
                 <span className="text-2xl font-bold text-primary group-hover:text-secondary transition-colors duration-200">MJK Prints</span>
-                <div className="text-xs text-gray-500 -mt-1">Digital Art Gallery</div>
+                <div className="text-xs text-gray-500 -mt-1">Printable & Digital Planners</div>
               </div>
             </Link>
 

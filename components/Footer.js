@@ -20,7 +20,7 @@ export default function Footer() {
               <span className="text-xl font-bold">MJK Prints</span>
             </Link>
             <p className="text-accent/80 mb-4 max-w-md">
-              Discover unique digital prints from independent designers. High-quality, instant downloads for your creative projects.
+              Discover beautifully designed planners for adhd adults and busy moms. Use digitally on your tablet or print at home-instant download, ready in seconds.
             </p>
           </div>
 
